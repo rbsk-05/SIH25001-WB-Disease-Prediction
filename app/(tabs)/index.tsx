@@ -1,62 +1,62 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, Button, StyleSheet, ActivityIndicator } from "react-native";
-import { Picker } from "@react-native-picker/picker";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../../firebase/firebaseConfig";
-import { router } from "expo-router";
+// app/index.tsx
+import React, { useEffect, useState } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../../firebase/firebaseConfig';
+import { router } from 'expo-router';
 
 export default function Index() {
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [userType, setUserType] = useState("asha");
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
+      if (user) {
+        try {
+          const docRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+
+          if (!docSnap.exists()) {
+            // User record not found in Firestore, logout
+            await auth.signOut();
+            router.replace('/auth/login');
+            return;
+          }
+
+          const userData = docSnap.data();
+          const role = userData?.role;
+          const isVerified = userData?.isVerified;
+
+          // Only verified users can proceed
+          if (!isVerified) {
+            router.replace('/auth/login');
+            return;
+          }
+
+          if (role === 'asha_worker') {
+            router.replace('/tabs/index'); // ASHA Worker Dashboard
+          } else if (role === 'gov_official') {
+            router.replace('/tabs/index'); // Government Official Dashboard
+          } else {
+            router.replace('/auth/login');
+          }
+        } catch (err) {
+          console.error('Error fetching user data:', err);
+          router.replace('/auth/login');
+        }
+      } else {
+        router.replace('/auth/login'); // Not logged in
+      }
       setLoading(false);
     });
+
     return () => unsubscribe();
   }, []);
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (user) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.heading}>Welcome back!</Text>
-        <Text style={styles.text}>You are logged in as: {user.email}</Text>
-        <Text style={styles.text}>User type: {userType}</Text>
-        <Button title="Go to Dashboard" onPress={() => router.push("/(tabs)/explore")} />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Smart Health Monitoring</Text>
-      <Text style={styles.text}>Select your role:</Text>
-
-      <View style={styles.dropdown}>
-        <Picker
-          selectedValue={userType}
-          onValueChange={(value) => setUserType(value)}
-        >
-          <Picker.Item label="ASHA Worker" value="asha" />
-          <Picker.Item label="Government Official" value="official" />
-          <Picker.Item label="Community Member" value="community" />
-        </Picker>
-      </View>
-
-      <View style={styles.buttonRow}>
-        <Button title="Login" onPress={() => router.push("/auth/login")} />
-        <Button title="Register" onPress={() => router.push("/auth/register")} />
-      </View>
+      <ActivityIndicator size="large" color="#007AFF" />
+      <Text style={styles.text}>Checking authentication...</Text>
     </View>
   );
 }
@@ -64,36 +64,14 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff", // clean white
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: "600",
-    marginBottom: 15,
-  },
   text: {
+    marginTop: 15,
     fontSize: 16,
-    marginBottom: 10,
-  },
-  dropdown: {
-    width: "80%",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    marginVertical: 10,
-  },
-  buttonRow: {
-    marginTop: 20,
-    width: "60%",
-    flexDirection: "row",
-    justifyContent: "space-around",
+    color: '#000',
   },
 });
