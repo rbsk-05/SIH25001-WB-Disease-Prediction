@@ -5,6 +5,15 @@ import Checkbox from 'expo-checkbox';
 import { Picker } from '@react-native-picker/picker';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import {
+  getAuth,
+  updatePassword,
+  signOut,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from "firebase/auth";
+import { router } from "expo-router";
+
 
 const Tab = createBottomTabNavigator();
 
@@ -48,11 +57,15 @@ function HealthDashboard() {
     if (!symptoms[symptom]) setSymptomSeverity({ ...symptomSeverity, [symptom]: '' });
   };
 
-  const handleWaterSourceChange = (index: number, field: string, value: string) => {
-    const newSources = [...waterSources];
-    newSources[index][field] = value;
-    setWaterSources(newSources);
-  };
+  const handleWaterSourceChange = (
+  index: number,
+  field: "name" | "type",  // restrict to known keys
+  value: string
+) => {
+  const newSources = [...waterSources];
+  newSources[index][field] = value;
+  setWaterSources(newSources);
+};
 
   const addWaterSource = () => setWaterSources([...waterSources, { name: '', type: '' }]);
 
@@ -349,10 +362,112 @@ function WaterDashboard() {
 
 // ----- PROFILE DASHBOARD -----
 function ProfileDashboard() {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  const [email] = useState(user?.email || "");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  // ✅ Password reset with verification
+  const handlePasswordReset = async () => {
+    setError("");
+    setSuccess("");
+
+    if (newPassword !== confirmPassword) {
+      setError("New passwords do not match!");
+      return;
+    }
+
+    try {
+      if (user && currentPassword) {
+        const credential = EmailAuthProvider.credential(
+          user.email!,
+          currentPassword
+        );
+
+        // First re-authenticate with current password
+        await reauthenticateWithCredential(user, credential);
+
+        // Then update password
+        await updatePassword(user, newPassword);
+
+        setSuccess("Password updated successfully!");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        setError("Please enter your current password.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to update password.");
+    }
+  };
+
+  // ✅ Logout and redirect to login
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.replace("/auth/login"); // 👈 Your login file
+    } catch (err: any) {
+      setError(err.message || "Logout failed.");
+    }
+  };
+
   return (
-    <View style={styles.center}>
-      <Text style={styles.text}>Profile Dashboard</Text>
-    </View>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>Profile</Text>
+
+      {/* Show messages */}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {success ? <Text style={styles.success}>{success}</Text> : null}
+
+      {/* Email */}
+      <Text style={styles.label}>Email</Text>
+      <TextInput style={styles.input} value={email} editable={false} />
+
+      {/* Reset Password */}
+      <Text style={styles.sectionTitle}>Reset Password</Text>
+
+      <Text style={styles.label}>Current Password</Text>
+      <TextInput
+        style={styles.input}
+        secureTextEntry
+        value={currentPassword}
+        onChangeText={setCurrentPassword}
+        placeholder="Enter current password"
+      />
+
+      <Text style={styles.label}>New Password</Text>
+      <TextInput
+        style={styles.input}
+        secureTextEntry
+        value={newPassword}
+        onChangeText={setNewPassword}
+        placeholder="Enter new password"
+      />
+
+      <Text style={styles.label}>Confirm New Password</Text>
+      <TextInput
+        style={styles.input}
+        secureTextEntry
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        placeholder="Confirm new password"
+      />
+
+      <TouchableOpacity style={styles.saveButton} onPress={handlePasswordReset}>
+        <Text style={styles.saveButtonText}>Reset Password</Text>
+      </TouchableOpacity>
+
+      {/* Logout */}
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
@@ -404,4 +519,29 @@ const styles = StyleSheet.create({
   picker: { height: 50, width: '100%', fontSize: 16 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   text: { fontSize: 18 },
+  sectionTitle: {
+  fontSize: 18,
+  fontWeight: "700",
+  marginTop: 20,
+  marginBottom: 10,
+},
+saveButton: {
+  backgroundColor: "#007AFF",
+  padding: 12,
+  borderRadius: 6,
+  alignItems: "center",
+  marginTop: 10,
+},
+saveButtonText: { color: "#fff", fontWeight: "bold" },
+logoutButton: {
+  marginTop: 30,
+  padding: 12,
+  borderRadius: 6,
+  borderWidth: 1,
+  borderColor: "red",
+  alignItems: "center",
+},
+logoutText: { color: "red", fontWeight: "bold" },  error: { color: "red", marginBottom: 15, textAlign: "center" },
+  success: { color: "green", marginBottom: 15, textAlign: "center" }
+
 });

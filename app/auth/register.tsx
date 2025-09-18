@@ -19,9 +19,13 @@ export default function RegisterScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const pickCertificate = async () => {
-    const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
-    if (result.type === 'success') setCertificate(result);
-  };
+  const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
+
+  if ('uri' in result) {
+    // Success result
+    setCertificate(result);
+  }
+};
 
   const handleRegister = async () => {
     if (!fullName || !email || !password || !confirmPassword) {

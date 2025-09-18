@@ -1,65 +1,22 @@
 // app/index.tsx
-import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase/firebaseConfig';
-import { router } from 'expo-router';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function Index() {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
-      if (user) {
-        try {
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
-
-          if (!userDoc.exists()) {
-            // User not found in Firestore → log out and go to login
-            await auth.signOut();
-            router.replace('/auth/login');
-            return;
-          }
-
-          const userData = userDoc.data();
-          const role = userData?.role;
-          const isVerified = userData?.isVerified;
-
-          if (!isVerified) {
-            // Not verified → go to login
-            router.replace('/auth/login');
-            return;
-          }
-
-          // Role-based routing
-          if (role === 'asha_worker') {
-            router.replace('/tabs/index'); // ASHA Worker Dashboard
-          } else if (role === 'gov_official') {
-            router.replace('/tabs/index'); // Government Official Dashboard
-          } else {
-            router.replace('/auth/login'); // Invalid role
-          }
-        } catch (err) {
-          console.error('Error fetching user data:', err);
-          router.replace('/auth/login');
-        }
-      } else {
-        // No user logged in → go to login
-        router.replace('/auth/login');
-      }
-
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#007AFF" />
-      <Text style={styles.text}>Checking authentication...</Text>
+      <Text style={styles.title}>Welcome!</Text>
+      <Text style={styles.subtitle}>Government Health & Water Quality App</Text>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => router.push('/auth/login')}
+      >
+        <Text style={styles.buttonText}>Go to Login</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -70,11 +27,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 25,
   },
-  text: {
-    marginTop: 15,
-    fontSize: 16,
-    color: '#000',
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#555',
+    marginBottom: 40,
+    textAlign: 'center',
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 15,
+    paddingHorizontal: 35,
+    borderRadius: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
