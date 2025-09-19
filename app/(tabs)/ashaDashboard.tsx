@@ -1,5 +1,5 @@
 // app/(tabs)/Dashboard.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import Checkbox from 'expo-checkbox';
 import { Picker } from '@react-native-picker/picker';
@@ -13,12 +13,16 @@ import {
   reauthenticateWithCredential,
 } from "firebase/auth";
 import { router } from "expo-router";
-
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../../firebase/firebaseConfig'; // your Firestore config
+import { useTranslation } from 'react-i18next';
 
 const Tab = createBottomTabNavigator();
 
 // ----- HEALTH DASHBOARD -----
 function HealthDashboard() {
+  const { t } = useTranslation();
+
   const [houseId, setHouseId] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('');
@@ -28,14 +32,14 @@ function HealthDashboard() {
   const [waterSources, setWaterSources] = useState([{ name: '', type: '' }]);
 
   const symptomList = [
-    'Diarrhea ',
-    'Fatigue ',
-    'Vomiting ',
-    'Fever ',
-    'Jaundice ',
-    'Headache ',
-    'Loss of Appetite ',
-    'Muscle Aches ',
+    'diarrhea',
+    'fatigue',
+    'vomiting',
+    'fever',
+    'jaundice',
+    'headache',
+    'loss_of_appetite',
+    'muscle_aches',
   ];
 
   const waterSourceTypes = [
@@ -57,15 +61,11 @@ function HealthDashboard() {
     if (!symptoms[symptom]) setSymptomSeverity({ ...symptomSeverity, [symptom]: '' });
   };
 
-  const handleWaterSourceChange = (
-  index: number,
-  field: "name" | "type",  // restrict to known keys
-  value: string
-) => {
-  const newSources = [...waterSources];
-  newSources[index][field] = value;
-  setWaterSources(newSources);
-};
+  const handleWaterSourceChange = (index: number, field: 'name' | 'type', value: string) => {
+    const newSources = [...waterSources];
+    newSources[index][field] = value;
+    setWaterSources(newSources);
+  };
 
   const addWaterSource = () => setWaterSources([...waterSources, { name: '', type: '' }]);
 
@@ -80,57 +80,70 @@ function HealthDashboard() {
       waterSources,
     };
     console.log('Form submitted:', formData);
-    alert('Form Submitted Successfully!');
+    alert(t('messages.formSubmitted'));
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Health Data Collection</Text>
+      <Text style={styles.title}>{t('health.title')}</Text>
 
-      <Text style={styles.label}>House ID</Text>
-      <TextInput style={styles.input} placeholder="Enter House ID" value={houseId} onChangeText={setHouseId} />
+      <Text style={styles.label}>{t('health.houseId')}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={t('placeholders.houseId')}
+        value={houseId}
+        onChangeText={setHouseId}
+      />
 
-      <Text style={styles.label}>Age</Text>
-      <TextInput style={styles.input} placeholder="Enter Age" keyboardType="numeric" value={age} onChangeText={setAge} />
+      <Text style={styles.label}>{t('health.age')}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={t('placeholders.age')}
+        keyboardType="numeric"
+        value={age}
+        onChangeText={setAge}
+      />
 
-      <Text style={styles.label}>Gender</Text>
+      <Text style={styles.label}>{t('health.gender')}</Text>
       <View style={styles.pickerContainer}>
-        <Picker selectedValue={gender} onValueChange={(itemValue) => setGender(itemValue)} style={styles.picker}>
-          <Picker.Item label="Select Gender" value="" />
-          <Picker.Item label="Male" value="male" />
-          <Picker.Item label="Female" value="female" />
-          <Picker.Item label="Other" value="other" />
+        <Picker selectedValue={gender} onValueChange={(val) => setGender(val)} style={styles.picker}>
+          <Picker.Item label={t('placeholders.selectGender')} value="" />
+          <Picker.Item label={t('gender.male')} value="male" />
+          <Picker.Item label={t('gender.female')} value="female" />
+          <Picker.Item label={t('gender.other')} value="other" />
         </Picker>
       </View>
 
-      <Text style={styles.label}>Sanitation Level</Text>
+      <Text style={styles.label}>{t('health.sanitation')}</Text>
       <View style={styles.radioGroup}>
-        {['Poor ', 'Good '].map((level) => (
+        {['poor', 'good'].map((level) => (
           <TouchableOpacity key={level} style={styles.radioOption} onPress={() => setSanitation(level)}>
             <View style={styles.radioCircle}>{sanitation === level && <View style={styles.selectedRb} />}</View>
-            <Text style={styles.radioText}>{level}</Text>
+            <Text style={styles.radioText}>{t(`sanitation.${level}`)}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <Text style={styles.label}>Symptoms</Text>
+      <Text style={styles.label}>{t('health.symptoms')}</Text>
       {symptomList.map((symptom) => (
         <View key={symptom} style={styles.symptomBlock}>
           <View style={styles.checkboxRow}>
             <Checkbox value={symptoms[symptom] || false} onValueChange={() => toggleSymptom(symptom)} />
-            <Text style={styles.checkboxLabel}>{symptom}</Text>
+            <Text style={styles.checkboxLabel}>{t(`symptoms.${symptom}`)}</Text>
           </View>
 
-          {(symptom === 'Diarrhea ' || symptom === 'Fatigue ') && symptoms[symptom] && (
+          {(symptom === 'diarrhea' || symptom === 'fatigue') && symptoms[symptom] && (
             <View style={styles.radioGroup}>
-              {['Mild ', 'Severe '].map((level) => (
+              {['mild', 'severe'].map((level) => (
                 <TouchableOpacity
                   key={level}
                   style={styles.radioOption}
                   onPress={() => setSymptomSeverity({ ...symptomSeverity, [symptom]: level })}
                 >
-                  <View style={styles.radioCircle}>{symptomSeverity[symptom] === level && <View style={styles.selectedRb} />}</View>
-                  <Text style={styles.radioText}>{level}</Text>
+                  <View style={styles.radioCircle}>
+                    {symptomSeverity[symptom] === level && <View style={styles.selectedRb} />}
+                  </View>
+                  <Text style={styles.radioText}>{t(`severity.${level}`)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -138,12 +151,12 @@ function HealthDashboard() {
         </View>
       ))}
 
-      <Text style={styles.label}>Water Sources</Text>
+      <Text style={styles.label}>{t('health.waterSources')}</Text>
       {waterSources.map((source, index) => (
         <View key={index} style={styles.waterSource}>
           <TextInput
             style={styles.input}
-            placeholder="Water Source Name"
+            placeholder={t('placeholders.waterSourceName')}
             value={source.name}
             onChangeText={(text) => handleWaterSourceChange(index, 'name', text)}
           />
@@ -151,11 +164,11 @@ function HealthDashboard() {
             <Picker
               selectedValue={source.type}
               style={styles.dropdown}
-              onValueChange={(itemValue) => handleWaterSourceChange(index, 'type', itemValue)}
+              onValueChange={(val) => handleWaterSourceChange(index, 'type', val)}
             >
-              <Picker.Item label="Select Water Source Type" value="" />
+              <Picker.Item label={t('placeholders.selectWaterSourceType')} value="" />
               {waterSourceTypes.map((type) => (
-                <Picker.Item key={type} label={type} value={type} />
+                <Picker.Item key={type} label={t(`waterSources.${type}`)} value={type} />
               ))}
             </Picker>
           </View>
@@ -163,17 +176,19 @@ function HealthDashboard() {
       ))}
 
       <TouchableOpacity style={styles.addButton} onPress={addWaterSource}>
-        <Text style={styles.addButtonText}>+ Add Water Source</Text>
+        <Text style={styles.addButtonText}>+ {t('health.addWaterSource')}</Text>
       </TouchableOpacity>
 
-      <Button title="Submit" onPress={handleSubmit} />
+      <Button title={t('buttons.submit')} onPress={handleSubmit} />
     </ScrollView>
   );
 }
 
+
 // ----- WATER DASHBOARD -----
-// ---------- WATER DASHBOARD ----------
 function WaterDashboard() {
+  const { t } = useTranslation();
+
   const [waterSourceName, setWaterSourceName] = useState('');
   const [waterSourceType, setWaterSourceType] = useState('');
   const [rainfall, setRainfall] = useState('');
@@ -224,142 +239,150 @@ function WaterDashboard() {
       personsWithSymptoms,
     };
     console.log('Water data submitted:', data);
-    alert('Water Data Submitted Successfully!');
+    alert(t('messages.formSubmitted'));
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Water Quality Data Collection</Text>
+      <Text style={styles.title}>{t('water.title')}</Text>
 
-      <Text style={styles.label}>Water Source Name</Text>
+      <Text style={styles.label}>{t('water.waterSourceName')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter Water Source Name"
+        placeholder={t('placeholders.waterSourceName')}
         value={waterSourceName}
         onChangeText={setWaterSourceName}
       />
 
-      <Text style={styles.label}>Water Source Type</Text>
+      <Text style={styles.label}>{t('water.waterSourceType')}</Text>
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={waterSourceType}
-          onValueChange={(itemValue) => setWaterSourceType(itemValue)}
+          onValueChange={(val) => setWaterSourceType(val)}
           style={styles.picker}
         >
-          <Picker.Item label="Select Water Source Type" value="" />
+          <Picker.Item label={t('placeholders.selectWaterSourceType')} value="" />
           {waterSourceTypes.map((type) => (
-            <Picker.Item key={type} label={type} value={type} />
+            <Picker.Item key={type} label={t(`waterSources.${type}`)} value={type} />
           ))}
         </Picker>
       </View>
 
-      <Text style={styles.label}>Rainfall (24hrs in mm)</Text>
+      <Text style={styles.label}>{t('water.rainfall')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter Rainfall"
+        placeholder={t('placeholders.rainfall')}
         keyboardType="numeric"
         value={rainfall}
         onChangeText={setRainfall}
       />
 
-      <Text style={styles.label}>Temperature (°C)</Text>
+      <Text style={styles.label}>{t('water.temperature')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter Temperature"
+        placeholder={t('placeholders.temperature')}
         keyboardType="numeric"
         value={temperature}
         onChangeText={setTemperature}
       />
 
-      <Text style={styles.label}>Dissolved Oxygen (mg/L)</Text>
+      <Text style={styles.label}>{t('water.dissolvedOxygen')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter Dissolved Oxygen"
+        placeholder={t('placeholders.dissolvedOxygen')}
         keyboardType="numeric"
         value={dissolvedOxygen}
         onChangeText={setDissolvedOxygen}
       />
 
-      <Text style={styles.label}>Chlorine (mg/L)</Text>
+      <Text style={styles.label}>{t('water.chlorine')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter Chlorine"
+        placeholder={t('placeholders.chlorine')}
         keyboardType="numeric"
         value={chlorine}
         onChangeText={setChlorine}
       />
 
-      <Text style={styles.label}>Month</Text>
+      <Text style={styles.label}>{t('water.month')}</Text>
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={month}
-          onValueChange={(itemValue) => setMonth(itemValue)}
+          onValueChange={(val) => setMonth(val)}
           style={styles.picker}
         >
-          <Picker.Item label="Select Month" value="" />
+          <Picker.Item label={t('placeholders.selectMonth')} value="" />
           {months.map((m) => (
-            <Picker.Item key={m} label={m} value={m} />
+            <Picker.Item key={m} label={t(`months.${m}`)} value={m} />
           ))}
         </Picker>
       </View>
 
-      <Text style={styles.label}>Fecal Coliform (MPN)</Text>
+      <Text style={styles.label}>{t('water.fecalColiform')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter Fecal Coliform"
+        placeholder={t('placeholders.fecalColiform')}
         keyboardType="numeric"
         value={fecalColiform}
         onChangeText={setFecalColiform}
       />
 
-      <Text style={styles.label}>Season</Text>
+      <Text style={styles.label}>{t('water.season')}</Text>
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={season}
-          onValueChange={(itemValue) => setSeason(itemValue)}
+          onValueChange={(val) => setSeason(val)}
           style={styles.picker}
         >
-          <Picker.Item label="Select Season" value="" />
+          <Picker.Item label={t('placeholders.selectSeason')} value="" />
           {seasons.map((s) => (
-            <Picker.Item key={s} label={s} value={s} />
+            <Picker.Item key={s} label={t(`seasons.${s}`)} value={s} />
           ))}
         </Picker>
       </View>
 
-      <Text style={styles.label}>pH</Text>
+      <Text style={styles.label}>{t('water.ph')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter pH"
+        placeholder={t('placeholders.ph')}
         keyboardType="numeric"
         value={ph}
         onChangeText={setPh}
       />
 
-      <Text style={styles.label}>Turbidity (NTU)</Text>
+      <Text style={styles.label}>{t('water.turbidity')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter Turbidity"
+        placeholder={t('placeholders.turbidity')}
         keyboardType="numeric"
         value={turbidity}
         onChangeText={setTurbidity}
       />
 
-      <Text style={styles.label}>Number of Persons with Symptoms</Text>
+      <Text style={styles.label}>{t('water.personsWithSymptoms')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter Number of Persons"
+        placeholder={t('placeholders.personsWithSymptoms')}
         keyboardType="numeric"
         value={personsWithSymptoms}
         onChangeText={setPersonsWithSymptoms}
       />
 
-      <Button title="Submit" onPress={handleSubmit} />
+      <Button title={t('buttons.submit')} onPress={handleSubmit} />
     </ScrollView>
   );
 }
 
-
-
+const stateDistrictMap: Record<string, string[]> = {
+  "Arunachal Pradesh": ["Itanagar", "Tawang", "Pasighat", "Ziro", "Bomdila"],
+  "Assam": ["Guwahati", "Dispur", "Jorhat", "Silchar", "Dibrugarh"],
+  "Manipur": ["Imphal", "Thoubal", "Churachandpur", "Bishnupur", "Senapati"],
+  "Meghalaya": ["Shillong", "Tura", "Nongpoh", "Jowai", "Williamnagar"],
+  "Mizoram": ["Aizawl", "Lunglei", "Serchhip", "Champhai", "Saiha"],
+  "Nagaland": ["Kohima", "Dimapur", "Mokokchung", "Mon", "Tuensang"],
+  "Sikkim": ["Gangtok", "Namchi", "Geyzing", "Mangan", "Ravangla"],
+  "Tripura": ["Agartala", "Udaipur", "Dharmanagar", "Kailashahar", "Belonia"]
+};
 // ----- PROFILE DASHBOARD -----
 function ProfileDashboard() {
   const auth = getAuth();
@@ -369,49 +392,70 @@ function ProfileDashboard() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [state, setState] = useState("");
+  const [district, setDistrict] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // ✅ Password reset with verification
-  const handlePasswordReset = async () => {
+  // Fetch user data on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setState(data.state || "");
+          setDistrict(data.district || "");
+        }
+      }
+    };
+    fetchUserData();
+  }, []);
+
+  // Update password and/or state/district with verification
+  const handleUpdateProfile = async () => {
     setError("");
     setSuccess("");
 
-    if (newPassword !== confirmPassword) {
-      setError("New passwords do not match!");
+    if (!currentPassword) {
+      setError("Please enter your current password to confirm changes.");
       return;
     }
 
     try {
-      if (user && currentPassword) {
-        const credential = EmailAuthProvider.credential(
-          user.email!,
-          currentPassword
-        );
-
-        // First re-authenticate with current password
+      if (user) {
+        const credential = EmailAuthProvider.credential(user.email!, currentPassword);
         await reauthenticateWithCredential(user, credential);
 
-        // Then update password
-        await updatePassword(user, newPassword);
+        // Update password if entered
+        if (newPassword || confirmPassword) {
+          if (newPassword !== confirmPassword) {
+            setError("New passwords do not match!");
+            return;
+          }
+          await updatePassword(user, newPassword);
+          setNewPassword("");
+          setConfirmPassword("");
+        }
 
-        setSuccess("Password updated successfully!");
+        // Update state and district
+        await updateDoc(doc(db, 'users', user.uid), {
+          state,
+          district,
+        });
+
+        setSuccess("Profile updated successfully!");
         setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-      } else {
-        setError("Please enter your current password.");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to update password.");
+      setError(err.message || "Failed to update profile.");
     }
   };
 
-  // ✅ Logout and redirect to login
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      router.replace("/auth/login"); // 👈 Your login file
+      router.replace("/auth/login");
     } catch (err: any) {
       setError(err.message || "Logout failed.");
     }
@@ -421,7 +465,6 @@ function ProfileDashboard() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Profile</Text>
 
-      {/* Show messages */}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {success ? <Text style={styles.success}>{success}</Text> : null}
 
@@ -429,8 +472,30 @@ function ProfileDashboard() {
       <Text style={styles.label}>Email</Text>
       <TextInput style={styles.input} value={email} editable={false} />
 
-      {/* Reset Password */}
-      <Text style={styles.sectionTitle}>Reset Password</Text>
+      {/* State & District Dropdown */}
+      <Text style={styles.sectionTitle}>Location</Text>
+
+      <Text style={styles.label}>State</Text>
+      <Picker selectedValue={state} onValueChange={(val) => {
+        setState(val);
+        setDistrict(""); // Reset district on state change
+      }} style={styles.picker}>
+        <Picker.Item label="Select State" value="" />
+        {Object.keys(stateDistrictMap).map((s) => (
+          <Picker.Item key={s} label={s} value={s} />
+        ))}
+      </Picker>
+
+      <Text style={styles.label}>District</Text>
+      <Picker selectedValue={district} onValueChange={setDistrict} style={styles.picker}>
+        <Picker.Item label="Select District" value="" />
+        {state && stateDistrictMap[state].map((d) => (
+          <Picker.Item key={d} label={d} value={d} />
+        ))}
+      </Picker>
+
+      {/* Password Section */}
+      <Text style={styles.sectionTitle}>Reset Password (Optional)</Text>
 
       <Text style={styles.label}>Current Password</Text>
       <TextInput
@@ -459,8 +524,8 @@ function ProfileDashboard() {
         placeholder="Confirm new password"
       />
 
-      <TouchableOpacity style={styles.saveButton} onPress={handlePasswordReset}>
-        <Text style={styles.saveButtonText}>Reset Password</Text>
+      <TouchableOpacity style={styles.saveButton} onPress={handleUpdateProfile}>
+        <Text style={styles.saveButtonText}>Save Changes</Text>
       </TouchableOpacity>
 
       {/* Logout */}

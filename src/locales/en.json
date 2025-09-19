@@ -1,0 +1,220 @@
+{
+  "welcome": "Welcome!",
+  "appSubtitle": "Government Health & Water Quality App",
+  "goToLogin": "Login",
+  "login": "Login",
+  "email": "Email",
+  "enterEmail": "Enter your email",
+  "password": "Password",
+  "enterPassword": "Enter your password",
+  "loginBtn": "Login",
+  "newUser": "New User? Register here",
+  "errorFillFields": "⚠️ Please fill all fields.",
+  "errorNotFound": "User data not found. Please register first.",
+  "errorWrongPassword": "Incorrect password. Try again.",
+  "errorInvalidEmail": "Invalid email format.",
+
+  "register": {
+    "title": "Register",
+    "fullName": "Full Name",
+    "email": "Email",
+    "phone": "Phone Number",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "role": "Select Role",
+    "state": "Select State",
+    "district": "Select District",
+    "uploadCertificate": "Upload Certificate",
+    "certificateSelected": "Certificate Selected",
+    "button": "Register",
+    "alreadyRegistered": "Already registered? Login"
+  },
+  "placeholders": {
+    "name": "Enter your full name",
+    "email": "Enter your email",
+    "phone": "Enter your phone number",
+    "password": "Enter your password",
+    "confirmPassword": "Re-enter your password",
+    "houseId": "Enter House ID",
+    "age": "Enter Age",
+    "selectGender": "Select Gender",
+    "waterSourceName": "Enter Water Source Name",
+    "selectWaterSourceType": "Select Water Source Type",
+    "rainfall": "Enter Rainfall",
+    "temperature": "Enter Temperature",
+    "dissolvedOxygen": "Enter Dissolved Oxygen",
+    "chlorine": "Enter Chlorine",
+    "selectMonth": "Select Month",
+    "fecalColiform": "Enter Fecal Coliform",
+    "selectSeason": "Select Season",
+    "ph": "Enter pH",
+    "turbidity": "Enter Turbidity",
+    "personsWithSymptoms": "Enter Number of Persons"
+  },
+  "roles": {
+    "ashaWorker": "ASHA Worker",
+    "govOfficial": "Government Official"
+  },
+  "errors": {
+    "fillAllFields": "Please fill in all fields.",
+    "passwordMismatch": "Passwords do not match.",
+    "emailExists": "This email is already registered.",
+    "somethingWentWrong": "Something went wrong. Please try again."
+  },
+  "states": {
+    "ArunachalPradesh": "Arunachal Pradesh",
+    "Assam": "Assam",
+    "Manipur": "Manipur",
+    "Meghalaya": "Meghalaya",
+    "Mizoram": "Mizoram",
+    "Nagaland": "Nagaland",
+    "Sikkim": "Sikkim",
+    "Tripura": "Tripura"
+  },
+  "districts": {
+    "ArunachalPradesh": {
+      "Itanagar": "Itanagar",
+      "Tawang": "Tawang",
+      "Pasighat": "Pasighat",
+      "Ziro": "Ziro",
+      "Bomdila": "Bomdila"
+    },
+    "Assam": {
+      "Guwahati": "Guwahati",
+      "Dispur": "Dispur",
+      "Jorhat": "Jorhat",
+      "Tezpur": "Tezpur",
+      "Silchar": "Silchar"
+    },
+    "Manipur": {
+      "Imphal": "Imphal",
+      "Thoubal": "Thoubal",
+      "Churachandpur": "Churachandpur",
+      "Bishnupur": "Bishnupur",
+      "Ukhrul": "Ukhrul"
+    },
+    "Meghalaya": {
+      "Shillong": "Shillong",
+      "Tura": "Tura",
+      "Jowai": "Jowai",
+      "Nongstoin": "Nongstoin",
+      "Nongpoh": "Nongpoh"
+    },
+    "Mizoram": {
+      "Aizawl": "Aizawl",
+      "Lunglei": "Lunglei",
+      "Champhai": "Champhai",
+      "Serchhip": "Serchhip",
+      "Kolasib": "Kolasib"
+    },
+    "Nagaland": {
+      "Kohima": "Kohima",
+      "Dimapur": "Dimapur",
+      "Mokokchung": "Mokokchung",
+      "Mon": "Mon",
+      "Tuensang": "Tuensang"
+    },
+    "Sikkim": {
+      "Gangtok": "Gangtok",
+      "Namchi": "Namchi",
+      "Gyalshing": "Gyalshing",
+      "Mangan": "Mangan",
+      "Pelling": "Pelling"
+    },
+    "Tripura": {
+      "Agartala": "Agartala",
+      "Udaipur": "Udaipur",
+      "Dharmanagar": "Dharmanagar",
+      "Kailashahar": "Kailashahar",
+      "Amarpur": "Amarpur"
+    }
+  },
+  "health": {
+    "title": "Health Data Collection",
+    "houseId": "House ID",
+    "age": "Age",
+    "gender": "Gender",
+    "sanitation": "Sanitation Level",
+    "symptoms": "Symptoms",
+    "waterSources": "Water Sources",
+    "addWaterSource": "Add Water Source"
+  },
+  "gender": {
+    "male": "Male",
+    "female": "Female",
+    "other": "Other"
+  },
+  "sanitation": {
+    "poor": "Poor",
+    "good": "Good"
+  },
+  "symptoms": {
+    "diarrhea": "Diarrhea",
+    "fatigue": "Fatigue",
+    "vomiting": "Vomiting",
+    "fever": "Fever",
+    "jaundice": "Jaundice",
+    "headache": "Headache",
+    "loss_of_appetite": "Loss of Appetite",
+    "muscle_aches": "Muscle Aches"
+  },
+  "severity": {
+    "mild": "Mild",
+    "severe": "Severe"
+  },
+  "waterSources": {
+    "deep_borehole": "Deep Borehole",
+    "piped_protected": "Piped/Protected",
+    "community_tank": "Community Tank",
+    "shallow_well": "Shallow Well",
+    "spring": "Spring",
+    "river": "River",
+    "pond": "Pond",
+    "reservoir": "Reservoir",
+    "canal": "Canal",
+    "rooftop_rainwater": "Rooftop Rainwater",
+    "open_catchment": "Open Catchment"
+  },
+  "buttons": {
+    "submit": "Submit"
+  },
+  "messages": {
+    "formSubmitted": "Form Submitted Successfully!",
+        "registrationSuccess": "Registration successful! Please login."
+  },
+  "months": {
+    "January": "January",
+    "February": "February",
+    "March": "March",
+    "April": "April",
+    "May": "May",
+    "June": "June",
+    "July": "July",
+    "August": "August",
+    "September": "September",
+    "October": "October",
+    "November": "November",
+    "December": "December"
+  },
+  "seasons": {
+    "Winter": "Winter",
+    "Summer": "Summer",
+    "Autumn": "Autumn",
+    "Rain": "Rain"
+  },
+  "water": {
+    "title": "Water Quality Data Collection",
+    "waterSourceName": "Water Source Name",
+    "waterSourceType": "Water Source Type",
+    "rainfall": "Rainfall (24hrs in mm)",
+    "temperature": "Temperature (°C)",
+    "dissolvedOxygen": "Dissolved Oxygen (mg/L)",
+    "chlorine": "Chlorine (mg/L)",
+    "month": "Month",
+    "fecalColiform": "Fecal Coliform (MPN)",
+    "season": "Season",
+    "ph": "pH",
+    "turbidity": "Turbidity (NTU)",
+    "personsWithSymptoms": "Number of Persons with Symptoms"
+  }
+}

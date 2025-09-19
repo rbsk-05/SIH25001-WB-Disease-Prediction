@@ -7,40 +7,65 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, setDoc } from 'firebase/firestore';
 import * as DocumentPicker from 'expo-document-picker';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next'; // ✅ i18n hook
+
+// ✅ Type for northeastern states and districts
+type StateType = {
+  [key in
+    | "Arunachal Pradesh"
+    | "Assam"
+    | "Manipur"
+    | "Meghalaya"
+    | "Mizoram"
+    | "Nagaland"
+    | "Sikkim"
+    | "Tripura"]: string[];
+};
+
+const STATES: StateType = {
+  "Arunachal Pradesh": ["Itanagar", "Tawang", "Pasighat", "Ziro", "Bomdila"],
+  Assam: ["Guwahati", "Dispur", "Jorhat", "Tezpur", "Silchar"],
+  Manipur: ["Imphal", "Thoubal", "Churachandpur", "Bishnupur", "Ukhrul"],
+  Meghalaya: ["Shillong", "Tura", "Jowai", "Nongstoin", "Nongpoh"],
+  Mizoram: ["Aizawl", "Lunglei", "Champhai", "Serchhip", "Kolasib"],
+  Nagaland: ["Kohima", "Dimapur", "Mokokchung", "Mon", "Tuensang"],
+  Sikkim: ["Gangtok", "Namchi", "Gyalshing", "Mangan", "Pelling"],
+  Tripura: ["Agartala", "Udaipur", "Dharmanagar", "Kailashahar", "Amarpur"],
+};
 
 export default function RegisterScreen() {
+  const { t } = useTranslation(); // ✅ translation hook
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'asha_worker' | 'gov_official'>('asha_worker');
   const [certificate, setCertificate] = useState<any>(null);
+  const [state, setState] = useState<keyof StateType>("Assam");
+  const [district, setDistrict] = useState<string>(STATES["Assam"][0]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const pickCertificate = async () => {
-  const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
-
-  if ('uri' in result) {
-    // Success result
-    setCertificate(result);
-  }
-};
+    const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
+    if ('uri' in result) setCertificate(result);
+  };
 
   const handleRegister = async () => {
-    if (!fullName || !email || !password || !confirmPassword) {
-      setError('⚠️ Please fill all fields.');
+    if (!fullName || !email || !phone || !password || !confirmPassword || !state || !district) {
+      setError(t('errors.fillAllFields'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('⚠️ Passwords do not match.');
+      setError(t('errors.passwordMismatch'));
       return;
     }
 
     setError(null);
     setLoading(true);
     try {
-      // Create Firebase Auth User
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
@@ -56,19 +81,22 @@ export default function RegisterScreen() {
       await setDoc(doc(db, 'users', uid), {
         fullName,
         email,
+        phone,
         role,
+        state,
+        district,
         certificateUrl: certUrl,
         isVerified: false,
       });
 
       setError(null);
-      alert('✅ Registered successfully! Waiting for verification.');
+      alert(t('messages.registrationSuccess'));
       router.replace('/auth/login');
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
-        setError('⚠️ This email is already registered. Please login.');
+        setError(t('errors.emailExists'));
       } else {
-        setError(err.message || 'Something went wrong.');
+        setError(err.message || t('errors.somethingWentWrong'));
       }
     } finally {
       setLoading(false);
@@ -77,43 +105,113 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Register</Text>
+      <Text style={styles.title}>{t('register.title')}</Text>
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
-      <Text style={styles.label}>Full Name</Text>
-      <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Enter your name" placeholderTextColor="#888" />
+      <Text style={styles.label}>{t('register.fullName')}</Text>
+      <TextInput
+        style={styles.input}
+        value={fullName}
+        onChangeText={setFullName}
+        placeholder={t('placeholders.name')}
+        placeholderTextColor="#888"
+      />
 
-      <Text style={styles.label}>Email</Text>
-      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Enter your email" placeholderTextColor="#888" autoCapitalize="none" keyboardType="email-address" />
+      <Text style={styles.label}>{t('register.email')}</Text>
+      <TextInput
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        placeholder={t('placeholders.email')}
+        placeholderTextColor="#888"
+        autoCapitalize="none"
+        keyboardType="email-address"
+      />
 
-      <Text style={styles.label}>Password</Text>
-      <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Enter password" placeholderTextColor="#888" secureTextEntry />
+      <Text style={styles.label}>{t('register.phone')}</Text>
+      <TextInput
+        style={styles.input}
+        value={phone}
+        onChangeText={setPhone}
+        placeholder={t('placeholders.phone')}
+        placeholderTextColor="#888"
+        keyboardType="phone-pad"
+      />
 
-      <Text style={styles.label}>Confirm Password</Text>
-      <TextInput style={styles.input} value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirm password" placeholderTextColor="#888" secureTextEntry />
+      <Text style={styles.label}>{t('register.password')}</Text>
+      <TextInput
+        style={styles.input}
+        value={password}
+        onChangeText={setPassword}
+        placeholder={t('placeholders.password')}
+        placeholderTextColor="#888"
+        secureTextEntry
+      />
 
-      <Text style={styles.label}>Role</Text>
+      <Text style={styles.label}>{t('register.confirmPassword')}</Text>
+      <TextInput
+        style={styles.input}
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        placeholder={t('placeholders.confirmPassword')}
+        placeholderTextColor="#888"
+        secureTextEntry
+      />
+
+      <Text style={styles.label}>{t('register.role')}</Text>
       <Picker selectedValue={role} onValueChange={(val) => setRole(val)} style={styles.picker}>
-        <Picker.Item label="ASHA Worker" value="asha_worker" />
-        <Picker.Item label="Government Official" value="gov_official" />
+        <Picker.Item label={t('roles.ashaWorker')} value="asha_worker" />
+        <Picker.Item label={t('roles.govOfficial')} value="gov_official" />
       </Picker>
+
+      <Text style={styles.label}>{t('register.state')}</Text>
+<Picker
+  selectedValue={state}
+  onValueChange={(val) => {
+    setState(val as keyof StateType);
+    setDistrict(STATES[val as keyof StateType][0]);
+  }}
+  style={styles.picker}
+>
+  {Object.keys(STATES).map((s) => (
+    <Picker.Item
+      key={s}
+      label={t(`states.${s.replace(/\s+/g, '')}`)} // ✅ Translated state name
+      value={s}
+    />
+  ))}
+</Picker>
+
+<Text style={styles.label}>{t('register.district')}</Text>
+<Picker
+  selectedValue={district}
+  onValueChange={(val) => setDistrict(val)}
+  style={styles.picker}
+>
+  {(STATES[state] || []).map((d) => (
+    <Picker.Item
+      key={d}
+      label={t(`districts.${state.replace(/\s+/g, '')}.${d}`)} // ✅ Translated district name
+      value={d}
+    />
+  ))}
+</Picker>
+
 
       <TouchableOpacity style={styles.certificateButton} onPress={pickCertificate}>
         <Text style={styles.certificateButtonText}>
-          {certificate ? '📄 Certificate Selected' : 'Upload Certificate (optional)'}
+          {certificate ? t('register.certificateSelected') : t('register.uploadCertificate')}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Register</Text>}
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t('register.button')}</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push('/auth/login')}>
-              <Text style={styles.registerText}>
-                Registered?
-              </Text>
-        </TouchableOpacity>
+        <Text style={styles.registerText}>{t('register.alreadyRegistered')}</Text>
+      </TouchableOpacity>
     </View>
   );
 }

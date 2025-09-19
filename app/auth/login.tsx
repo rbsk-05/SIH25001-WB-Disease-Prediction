@@ -1,46 +1,56 @@
-// app/auth/login.tsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase/firebaseConfig';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';  // ✅ import
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(''); // 🔴 Inline error message
+  const [error, setError] = useState('');
+
+  const { t } = useTranslation(); // ✅ hook
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Please fill all fields.');
+      setError(t("errorFillFields"));
       return;
     }
 
     setLoading(true);
     setError('');
+
     try {
-      // 1️⃣ Sign in with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
-      // 2️⃣ Fetch user document from Firestore to get role
       const userDocRef = doc(db, 'users', uid);
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
-        setError('User data not found. Please register first.');
+        setError(t("errorNotFound"));
         setLoading(false);
         return;
       }
 
       const userData = userDoc.data();
+      const { role, state, district } = userData;
 
-      // 3️⃣ Role-based routing
-      if (userData.role === 'asha_worker') {
+      if (!state || !district) {
+        setError(t("errorFillFields"));
+        setLoading(false);
+        return;
+      }
+
+      await AsyncStorage.setItem('user_info', JSON.stringify({ uid, role, state, district }));
+
+      if (role === 'asha_worker') {
         router.replace('/(tabs)/ashaDashboard');
-      } else if (userData.role === 'gov_official') {
+      } else if (role === 'gov_official') {
         router.replace('/(tabs)/govDashboard');
       } else {
         setError('Invalid user role.');
@@ -48,13 +58,12 @@ export default function LoginScreen() {
 
     } catch (err: any) {
       console.log('Login error:', err);
-      // 🔎 Friendly Firebase error messages
       if (err.code === 'auth/user-not-found') {
-        setError('No user found. Please register.');
+        setError(t("errorNotFound"));
       } else if (err.code === 'auth/wrong-password') {
-        setError('Incorrect password. Try again.');
+        setError(t("errorWrongPassword"));
       } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email format.');
+        setError(t("errorInvalidEmail"));
       } else {
         setError(err.message || 'Something went wrong.');
       }
@@ -65,14 +74,14 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>{t("login")}</Text>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Text style={styles.label}>Email</Text>
+      <Text style={styles.label}>{t("email")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter your email"
+        placeholder={t("enterEmail")}
         value={email}
         onChangeText={setEmail}
         placeholderTextColor="#888"
@@ -80,10 +89,10 @@ export default function LoginScreen() {
         keyboardType="email-address"
       />
 
-      <Text style={styles.label}>Password</Text>
+      <Text style={styles.label}>{t("password")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter your password"
+        placeholder={t("enterPassword")}
         value={password}
         onChangeText={setPassword}
         placeholderTextColor="#888"
@@ -91,17 +100,16 @@ export default function LoginScreen() {
       />
 
       <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Login</Text>}
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t("loginBtn")}</Text>}
       </TouchableOpacity>
 
       <View style={{ marginTop: 20, alignItems: 'center' }}>
-  <TouchableOpacity onPress={() => router.push('/auth/register')}>
-    <Text style={styles.registerText}>
-      New User? Register here
-    </Text>
-  </TouchableOpacity>
-</View>
-
+        <TouchableOpacity onPress={() => router.push('/auth/register')}>
+          <Text style={styles.registerText}>
+            {t("newUser")}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
