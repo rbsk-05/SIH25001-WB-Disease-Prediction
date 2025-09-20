@@ -150,22 +150,22 @@
     "other": "Other"
   },
   "sanitation": {
-    "poor": "Poor",
-    "good": "Good"
+    "poor": "Poor ",
+    "good": "Good "
   },
   "symptoms": {
-    "diarrhea": "Diarrhea",
-    "fatigue": "Fatigue",
-    "vomiting": "Vomiting",
-    "fever": "Fever",
-    "jaundice": "Jaundice",
-    "headache": "Headache",
-    "loss_of_appetite": "Loss of Appetite",
-    "muscle_aches": "Muscle Aches"
+    "diarrhea": "Diarrhea ",
+    "fatigue": "Fatigue ",
+    "vomiting": "Vomiting ",
+    "fever": "Fever ",
+    "jaundice": "Jaundice ",
+    "headache": "Headache ",
+    "loss_of_appetite": "Loss of Appetite ",
+    "muscle_aches": "Muscle Aches "
   },
   "severity": {
-    "mild": "Mild",
-    "severe": "Severe"
+    "mild": "Mild ",
+    "severe": "Severe "
   },
   "waterSources": {
     "deep_borehole": "Deep Borehole",

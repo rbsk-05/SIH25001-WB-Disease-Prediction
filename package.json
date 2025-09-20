@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
+    "@faker-js/faker": "^10.0.0",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "^11.4.1",
     "@react-native-picker/picker": "^2.11.2",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
@@ -34,6 +36,7 @@
     "firebase": "^12.2.1",
     "i18next": "^25.5.2",
     "i18next-browser-languagedetector": "^8.2.0",
+    "mongoose": "^8.18.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-i18next": "^15.7.3",

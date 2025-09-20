@@ -16,6 +16,10 @@ import { router } from "expo-router";
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/firebaseConfig'; // your Firestore config
 import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
+
+
 
 const Tab = createBottomTabNavigator();
 
@@ -32,57 +36,139 @@ function HealthDashboard() {
   const [waterSources, setWaterSources] = useState([{ name: '', type: '' }]);
 
   const symptomList = [
-    'diarrhea',
-    'fatigue',
-    'vomiting',
-    'fever',
-    'jaundice',
-    'headache',
-    'loss_of_appetite',
-    'muscle_aches',
+    'diarrhea', 'fatigue', 'vomiting', 'fever',
+    'jaundice', 'headache', 'loss_of_appetite', 'muscle_aches',
   ];
 
   const waterSourceTypes = [
-    'deep_borehole',
-    'piped_protected',
-    'community_tank',
-    'shallow_well',
-    'spring',
-    'river',
-    'pond',
-    'reservoir',
-    'canal',
-    'rooftop_rainwater',
-    'open_catchment',
+    'deep_borehole', 'piped_protected', 'community_tank', 'shallow_well',
+    'spring', 'river', 'pond', 'reservoir', 'canal', 'rooftop_rainwater', 'open_catchment',
   ];
 
+  const SUBMISSIONS_KEY = 'health_submissions';
+  const BACKEND_URL = 'http://172.16.8.28:5000/submit'; // replace with your IPv4
+
+  // On mount: log cached count and set up network listener for auto-sync
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(SUBMISSIONS_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        if (arr.length > 0) console.log(`⚠️ ${arr.length} cached health submissions found`);
+      } catch (e) {
+        console.error('Error reading cached submissions', e);
+      }
+    })();
+
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (state.isConnected) {
+        console.log('📶 Network connected. Attempting to sync cached forms...');
+        trySyncCachedSubmissions();
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Toggle symptom checkbox
   const toggleSymptom = (symptom: string) => {
     setSymptoms({ ...symptoms, [symptom]: !symptoms[symptom] });
     if (!symptoms[symptom]) setSymptomSeverity({ ...symptomSeverity, [symptom]: '' });
   };
 
+  // Handle water source changes
   const handleWaterSourceChange = (index: number, field: 'name' | 'type', value: string) => {
     const newSources = [...waterSources];
     newSources[index][field] = value;
     setWaterSources(newSources);
   };
-
   const addWaterSource = () => setWaterSources([...waterSources, { name: '', type: '' }]);
 
-  const handleSubmit = () => {
-    const formData = {
-      houseId,
-      age,
-      gender,
-      sanitation,
-      symptoms,
-      symptomSeverity,
-      waterSources,
-    };
-    console.log('Form submitted:', formData);
-    alert(t('messages.formSubmitted'));
+  // Cache form locally
+  const cacheFormLocally = async (formData: any) => {
+    try {
+      const raw = await AsyncStorage.getItem(SUBMISSIONS_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      arr.push({ ...formData, timestamp: new Date().toISOString(), synced: false });
+      await AsyncStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(arr));
+      console.log('✅ Cached form locally. Total cached:', arr.length);
+    } catch (err) {
+      console.error('Failed to cache form locally', err);
+      throw err;
+    }
   };
 
+  // Sync all unsynced forms
+  const trySyncCachedSubmissions = async () => {
+    try {
+      const raw = await AsyncStorage.getItem(SUBMISSIONS_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      const unsynced = arr.filter((item: any) => !item.synced);
+      if (unsynced.length === 0) return;
+
+      console.log(`🔄 Syncing ${unsynced.length} cached form(s)...`);
+
+      for (const form of unsynced) {
+        const response = await fetch(BACKEND_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Form synced:', result);
+          form.synced = true;
+        } else {
+          console.error('❌ Failed to sync form:', response.status);
+        }
+      }
+
+      await AsyncStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(arr));
+    } catch (err) {
+      console.error('❌ Error syncing cached submissions:', err);
+    }
+  };
+
+  // Handle submit
+  const handleSubmit = async () => {
+    const formData = { houseId, age, gender, sanitation, symptoms, symptomSeverity, waterSources };
+
+    try {
+      // Cache locally
+      await cacheFormLocally(formData);
+
+      const net = await NetInfo.fetch();
+      if (net.isConnected) {
+        console.log('📶 Device online. Sending to backend...');
+        const response = await fetch(BACKEND_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) console.error('❌ Backend returned error status:', response.status);
+        else {
+          const result = await response.json();
+          console.log('✅ Backend response:', result);
+          // Mark this form as synced locally
+          const raw = await AsyncStorage.getItem(SUBMISSIONS_KEY);
+          const arr = raw ? JSON.parse(raw) : [];
+          arr[arr.length - 1].synced = true;
+          await AsyncStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(arr));
+        }
+      } else {
+        console.log('📴 Device offline. Data saved locally and will sync later.');
+      }
+
+      alert(t('messages.formSubmitted'));
+    } catch (err) {
+      console.error('❌ Error submitting form:', err);
+      alert(t('errors.somethingWentWrong') || 'Failed to save form locally.');
+    }
+  };
+
+  // --- Render form (unchanged) ---
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{t('health.title')}</Text>
@@ -184,6 +270,8 @@ function HealthDashboard() {
   );
 }
 
+
+
 // ----- WATER DASHBOARD -----
 function WaterDashboard() {
   const { t } = useTranslation();
@@ -227,177 +315,116 @@ function WaterDashboard() {
 
   const seasons = ['Winter', 'Summer', 'Autumn', 'Rain'];
 
-  const handleSubmit = () => {
-    const data = {
-      waterSourceName,
-      waterSourceType,
-      rainfall,
-      temperature,
-      dissolvedOxygen,
-      chlorine,
-      month,
-      fecalColiform,
-      season,
-      ph,
-      turbidity,
-      personsWithSymptoms,
-      hardness,
-      nitrate,
-      tds,
-    };
-    console.log('Water data submitted:', data);
-    alert(t('messages.formSubmitted'));
+  const WATER_SUBMISSIONS_KEY = "waterForms"; // AsyncStorage key
+const BACKEND_URL = "http://192.168.137.23:5000/water/submit";
+
+const handleSubmit = async () => {
+  const formData = {
+    waterSourceName,
+    waterSourceType,
+    rainfall,
+    temperature,
+    dissolvedOxygen,
+    chlorine,
+    month,
+    fecalColiform,
+    season,
+    ph,
+    turbidity,
+    personsWithSymptoms,
+    hardness,
+    nitrate,
+    tds,
   };
+
+  try {
+    const response = await fetch("http://192.168.137.23:5000/water/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) {
+      console.error("❌ Backend returned error status:", response.status);
+      alert("Failed to submit water data");
+      return;
+    }
+
+    const result = await response.json();
+    console.log("✅ Water form submitted:", result);
+    alert("Water form submitted successfully!");
+
+    // Reset form fields
+    setWaterSourceName(""); setWaterSourceType(""); setRainfall(""); setTemperature("");
+    setDissolvedOxygen(""); setChlorine(""); setMonth(""); setFecalColiform("");
+    setSeason(""); setPh(""); setTurbidity(""); setPersonsWithSymptoms("");
+    setHardness(""); setNitrate(""); setTds("");
+  } catch (err) {
+    console.error("❌ Error submitting water form:", err);
+    alert("Error submitting water form");
+  }
+};
+
+
+
+
+
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{t('water.title')}</Text>
+      <Text style={styles.title}>{t("water.title")}</Text>
 
-      <Text style={styles.label}>{t('water.waterSourceName')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('placeholders.waterSourceName')}
-        value={waterSourceName}
-        onChangeText={setWaterSourceName}
-      />
+      <Text style={styles.label}>{t("water.waterSourceName")}</Text>
+      <TextInput style={styles.input} placeholder={t("placeholders.waterSourceName")} value={waterSourceName} onChangeText={setWaterSourceName} />
 
-      <Text style={styles.label}>{t('water.waterSourceType')}</Text>
+      <Text style={styles.label}>{t("water.waterSourceType")}</Text>
       <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={waterSourceType}
-          onValueChange={(val) => setWaterSourceType(val)}
-          style={styles.picker}
-        >
-          <Picker.Item label={t('placeholders.selectWaterSourceType')} value="" />
-          {waterSourceTypes.map((type) => (
-            <Picker.Item key={type} label={t(`waterSources.${type}`)} value={type} />
-          ))}
+        <Picker selectedValue={waterSourceType} onValueChange={setWaterSourceType} style={styles.picker}>
+          <Picker.Item label={t("placeholders.selectWaterSourceType")} value="" />
+          {waterSourceTypes.map(type => <Picker.Item key={type} label={t(`waterSources.${type}`)} value={type} />)}
         </Picker>
       </View>
 
-      <Text style={styles.label}>{t('water.rainfall')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('placeholders.rainfall')}
-        keyboardType="numeric"
-        value={rainfall}
-        onChangeText={setRainfall}
-      />
+      {[
+        { label: t("water.rainfall"), value: rainfall, setter: setRainfall },
+        { label: t("water.temperature"), value: temperature, setter: setTemperature },
+        { label: t("water.dissolvedOxygen"), value: dissolvedOxygen, setter: setDissolvedOxygen },
+        { label: t("water.chlorine"), value: chlorine, setter: setChlorine },
+        { label: t("water.fecalColiform"), value: fecalColiform, setter: setFecalColiform },
+        { label: t("water.ph"), value: ph, setter: setPh },
+        { label: t("water.turbidity"), value: turbidity, setter: setTurbidity },
+        { label: t("water.personsWithSymptoms"), value: personsWithSymptoms, setter: setPersonsWithSymptoms },
+        { label: t("water.hardness"), value: hardness, setter: setHardness },
+        { label: t("water.nitrate"), value: nitrate, setter: setNitrate },
+        { label: t("water.tds"), value: tds, setter: setTds },
+      ].map(({ label, value, setter }) => (
+        <React.Fragment key={label}>
+          <Text style={styles.label}>{label}</Text>
+          <TextInput style={styles.input} keyboardType="numeric" value={value} onChangeText={setter} />
+        </React.Fragment>
+      ))}
 
-      <Text style={styles.label}>{t('water.temperature')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('placeholders.temperature')}
-        keyboardType="numeric"
-        value={temperature}
-        onChangeText={setTemperature}
-      />
-
-      <Text style={styles.label}>{t('water.dissolvedOxygen')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('placeholders.dissolvedOxygen')}
-        keyboardType="numeric"
-        value={dissolvedOxygen}
-        onChangeText={setDissolvedOxygen}
-      />
-
-      <Text style={styles.label}>{t('water.chlorine')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('placeholders.chlorine')}
-        keyboardType="numeric"
-        value={chlorine}
-        onChangeText={setChlorine}
-      />
-
-      <Text style={styles.label}>{t('water.month')}</Text>
+      <Text style={styles.label}>{t("water.month")}</Text>
       <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={month}
-          onValueChange={(val) => setMonth(val)}
-          style={styles.picker}
-        >
-          <Picker.Item label={t('placeholders.selectMonth')} value="" />
-          {months.map((m) => (
-            <Picker.Item key={m} label={t(`months.${m}`)} value={m} />
-          ))}
+        <Picker selectedValue={month} onValueChange={setMonth} style={styles.picker}>
+          <Picker.Item label={t("placeholders.selectMonth")} value="" />
+          {months.map(m => <Picker.Item key={m} label={t(`months.${m}`)} value={m} />)}
         </Picker>
       </View>
 
-      <Text style={styles.label}>{t('water.fecalColiform')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('placeholders.fecalColiform')}
-        keyboardType="numeric"
-        value={fecalColiform}
-        onChangeText={setFecalColiform}
-      />
-
-      <Text style={styles.label}>{t('water.season')}</Text>
+      <Text style={styles.label}>{t("water.season")}</Text>
       <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={season}
-          onValueChange={(val) => setSeason(val)}
-          style={styles.picker}
-        >
-          <Picker.Item label={t('placeholders.selectSeason')} value="" />
-          {seasons.map((s) => (
-            <Picker.Item key={s} label={t(`seasons.${s}`)} value={s} />
-          ))}
+        <Picker selectedValue={season} onValueChange={setSeason} style={styles.picker}>
+          <Picker.Item label={t("placeholders.selectSeason")} value="" />
+          {seasons.map(s => <Picker.Item key={s} label={t(`seasons.${s}`)} value={s} />)}
         </Picker>
       </View>
 
-      <Text style={styles.label}>{t('water.ph')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('placeholders.ph')}
-        keyboardType="numeric"
-        value={ph}
-        onChangeText={setPh}
-      />
-
-      <Text style={styles.label}>{t('water.turbidity')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('placeholders.turbidity')}
-        keyboardType="numeric"
-        value={turbidity}
-        onChangeText={setTurbidity}
-      />
-
-      {/* NEW FIELDS ADDED AT END */}
-      <Text style={styles.label}>{t('water.hardness')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('placeholders.hardness')}
-        keyboardType="numeric"
-        value={hardness}
-        onChangeText={setHardness}
-      />
-
-      <Text style={styles.label}>{t('water.nitrate')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('placeholders.nitrate')}
-        keyboardType="numeric"
-        value={nitrate}
-        onChangeText={setNitrate}
-      />
-
-      <Text style={styles.label}>{t('water.tds')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('placeholders.tds')}
-        keyboardType="numeric"
-        value={tds}
-        onChangeText={setTds}
-      />
-
-      <Button title={t('buttons.submit')} onPress={handleSubmit} />
+      <Button title={t("buttons.submit")} onPress={handleSubmit} />
     </ScrollView>
   );
 }
+
 
 const stateDistrictMap: Record<string, string[]> = {
   "Arunachal Pradesh": ["Itanagar", "Tawang", "Pasighat", "Ziro", "Bomdila"],
