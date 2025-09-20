@@ -202,6 +202,11 @@ function WaterDashboard() {
   const [turbidity, setTurbidity] = useState('');
   const [personsWithSymptoms, setPersonsWithSymptoms] = useState('');
 
+  // New fields
+  const [hardness, setHardness] = useState('');
+  const [nitrate, setNitrate] = useState('');
+  const [tds, setTds] = useState('');
+
   const waterSourceTypes = [
     'deep_borehole',
     'piped_protected',
@@ -237,6 +242,9 @@ function WaterDashboard() {
       ph,
       turbidity,
       personsWithSymptoms,
+      hardness,
+      nitrate,
+      tds,
     };
     console.log('Water data submitted:', data);
     alert(t('messages.formSubmitted'));
@@ -368,10 +376,40 @@ function WaterDashboard() {
         onChangeText={setPersonsWithSymptoms}
       />
 
+      {/* NEW FIELDS ADDED AT END */}
+      <Text style={styles.label}>{t('water.hardness')}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={t('placeholders.hardness')}
+        keyboardType="numeric"
+        value={hardness}
+        onChangeText={setHardness}
+      />
+
+      <Text style={styles.label}>{t('water.nitrate')}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={t('placeholders.nitrate')}
+        keyboardType="numeric"
+        value={nitrate}
+        onChangeText={setNitrate}
+      />
+
+      <Text style={styles.label}>{t('water.tds')}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={t('placeholders.tds')}
+        keyboardType="numeric"
+        value={tds}
+        onChangeText={setTds}
+      />
+
       <Button title={t('buttons.submit')} onPress={handleSubmit} />
     </ScrollView>
   );
 }
+
+
 
 const stateDistrictMap: Record<string, string[]> = {
   "Arunachal Pradesh": ["Itanagar", "Tawang", "Pasighat", "Ziro", "Bomdila"],
