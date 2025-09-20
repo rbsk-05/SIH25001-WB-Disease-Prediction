@@ -184,7 +184,6 @@ function HealthDashboard() {
   );
 }
 
-
 // ----- WATER DASHBOARD -----
 function WaterDashboard() {
   const { t } = useTranslation();
@@ -367,15 +366,6 @@ function WaterDashboard() {
         onChangeText={setTurbidity}
       />
 
-      <Text style={styles.label}>{t('water.personsWithSymptoms')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('placeholders.personsWithSymptoms')}
-        keyboardType="numeric"
-        value={personsWithSymptoms}
-        onChangeText={setPersonsWithSymptoms}
-      />
-
       {/* NEW FIELDS ADDED AT END */}
       <Text style={styles.label}>{t('water.hardness')}</Text>
       <TextInput
@@ -409,8 +399,6 @@ function WaterDashboard() {
   );
 }
 
-
-
 const stateDistrictMap: Record<string, string[]> = {
   "Arunachal Pradesh": ["Itanagar", "Tawang", "Pasighat", "Ziro", "Bomdila"],
   "Assam": ["Guwahati", "Dispur", "Jorhat", "Silchar", "Dibrugarh"],
@@ -423,6 +411,7 @@ const stateDistrictMap: Record<string, string[]> = {
 };
 // ----- PROFILE DASHBOARD -----
 function ProfileDashboard() {
+  const { t } = useTranslation();
   const auth = getAuth();
   const user = auth.currentUser;
 
@@ -435,11 +424,10 @@ function ProfileDashboard() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Fetch user data on mount
   useEffect(() => {
     const fetchUserData = async () => {
       if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
           setState(data.state || "");
@@ -450,13 +438,12 @@ function ProfileDashboard() {
     fetchUserData();
   }, []);
 
-  // Update password and/or state/district with verification
   const handleUpdateProfile = async () => {
     setError("");
     setSuccess("");
 
     if (!currentPassword) {
-      setError("Please enter your current password to confirm changes.");
+      setError(t("profile.enterCurrentPassword"));
       return;
     }
 
@@ -465,10 +452,9 @@ function ProfileDashboard() {
         const credential = EmailAuthProvider.credential(user.email!, currentPassword);
         await reauthenticateWithCredential(user, credential);
 
-        // Update password if entered
         if (newPassword || confirmPassword) {
           if (newPassword !== confirmPassword) {
-            setError("New passwords do not match!");
+            setError(t("profile.passwordMismatch"));
             return;
           }
           await updatePassword(user, newPassword);
@@ -476,17 +462,12 @@ function ProfileDashboard() {
           setConfirmPassword("");
         }
 
-        // Update state and district
-        await updateDoc(doc(db, 'users', user.uid), {
-          state,
-          district,
-        });
-
-        setSuccess("Profile updated successfully!");
+        await updateDoc(doc(db, "users", user.uid), { state, district });
+        setSuccess(t("profile.updateSuccess"));
         setCurrentPassword("");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to update profile.");
+      setError(err.message || t("profile.updateFailed"));
     }
   };
 
@@ -495,109 +476,144 @@ function ProfileDashboard() {
       await signOut(auth);
       router.replace("/auth/login");
     } catch (err: any) {
-      setError(err.message || "Logout failed.");
+      setError(err.message || t("profile.logoutFailed"));
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Profile</Text>
+      <Text style={styles.title}>{t("profile.title")}</Text>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {success ? <Text style={styles.success}>{success}</Text> : null}
 
       {/* Email */}
-      <Text style={styles.label}>Email</Text>
-      <TextInput style={styles.input} value={email} editable={false} />
+      <Text style={styles.label}>{t("profile.email")}</Text>
+      <TextInput
+        style={styles.input}
+        value={email}
+        editable={false}
+        placeholder={t("profile.email")}
+      />
 
-      {/* State & District Dropdown */}
-      <Text style={styles.sectionTitle}>Location</Text>
+      {/* Location */}
+      <Text style={styles.sectionTitle}>{t("profile.location")}</Text>
 
-      <Text style={styles.label}>State</Text>
-      <Picker selectedValue={state} onValueChange={(val) => {
-        setState(val);
-        setDistrict(""); // Reset district on state change
-      }} style={styles.picker}>
-        <Picker.Item label="Select State" value="" />
+      <Text style={styles.label}>{t("profile.state")}</Text>
+      <Picker
+        selectedValue={state}
+        onValueChange={(val) => {
+          setState(val);
+          setDistrict("");
+        }}
+        style={styles.picker}
+      >
+        <Picker.Item label={t("profile.selectState")} value="" />
         {Object.keys(stateDistrictMap).map((s) => (
-          <Picker.Item key={s} label={s} value={s} />
+          <Picker.Item key={s} label={t(`states.${s}`) || s} value={s} />
         ))}
       </Picker>
 
-      <Text style={styles.label}>District</Text>
-      <Picker selectedValue={district} onValueChange={setDistrict} style={styles.picker}>
-        <Picker.Item label="Select District" value="" />
-        {state && stateDistrictMap[state].map((d) => (
-          <Picker.Item key={d} label={d} value={d} />
-        ))}
+      <Text style={styles.label}>{t("profile.district")}</Text>
+      <Picker
+        selectedValue={district}
+        onValueChange={setDistrict}
+        style={styles.picker}
+      >
+        <Picker.Item label={t("profile.selectDistrict")} value="" />
+        {state &&
+          stateDistrictMap[state].map((d) => (
+            <Picker.Item key={d} label={t(`districts.${state}.${d}`) || d} value={d} />
+          ))}
       </Picker>
 
-      {/* Password Section */}
-      <Text style={styles.sectionTitle}>Reset Password (Optional)</Text>
+      {/* Password */}
+      <Text style={styles.sectionTitle}>{t("profile.resetPassword")}</Text>
 
-      <Text style={styles.label}>Current Password</Text>
+      <Text style={styles.label}>{t("profile.currentPassword")}</Text>
       <TextInput
         style={styles.input}
         secureTextEntry
         value={currentPassword}
         onChangeText={setCurrentPassword}
-        placeholder="Enter current password"
+        placeholder={t("profile.enterCurrentPassword")}
       />
 
-      <Text style={styles.label}>New Password</Text>
+      <Text style={styles.label}>{t("profile.newPassword")}</Text>
       <TextInput
         style={styles.input}
         secureTextEntry
         value={newPassword}
         onChangeText={setNewPassword}
-        placeholder="Enter new password"
+        placeholder={t("profile.enterNewPassword")}
       />
 
-      <Text style={styles.label}>Confirm New Password</Text>
+      <Text style={styles.label}>{t("profile.confirmPassword")}</Text>
       <TextInput
         style={styles.input}
         secureTextEntry
         value={confirmPassword}
         onChangeText={setConfirmPassword}
-        placeholder="Confirm new password"
+        placeholder={t("profile.confirmNewPassword")}
       />
 
       <TouchableOpacity style={styles.saveButton} onPress={handleUpdateProfile}>
-        <Text style={styles.saveButtonText}>Save Changes</Text>
+        <Text style={styles.saveButtonText}>{t("profile.saveChanges")}</Text>
       </TouchableOpacity>
 
-      {/* Logout */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Logout</Text>
+        <Text style={styles.logoutText}>{t("profile.logout")}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
+
 // ----- EXPORT TAB NAVIGATOR (NO NavigationContainer!) -----
 export default function DashboardTabs() {
+  const { i18n } = useTranslation();
+  const [language, setLanguage] = useState(i18n.language);
+
+  // Toggle between English and Hindi
+  const toggleLanguage = () => {
+    const newLang = language === 'en' ? 'hi' : 'en';
+    i18n.changeLanguage(newLang);
+    setLanguage(newLang);
+  };
+
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarIcon: ({ color, size }) => {
-          let iconName: any;
-          if (route.name === 'Health') iconName = 'heart-outline';
-          else if (route.name === 'Water') iconName = 'water-outline';
-          else if (route.name === 'Profile') iconName = 'person-outline';
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: 'gray',
-        tabBarStyle: { height: 60, paddingBottom: 5 },
-      })}
-    >
-      <Tab.Screen name="Health" component={HealthDashboard} />
-      <Tab.Screen name="Water" component={WaterDashboard} />
-      <Tab.Screen name="Profile" component={ProfileDashboard} />
-    </Tab.Navigator>
+    <>
+      {/* Language toggle at the top */}
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 10, backgroundColor: '#fff' }}>
+        <Button
+          title={language === 'en' ? 'हिन्दी' : 'English'}
+          onPress={toggleLanguage}
+        />
+      </View>
+
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => {
+            let iconName: any;
+            if (route.name === 'Health') iconName = 'heart-outline';
+            else if (route.name === 'Water') iconName = 'water-outline';
+            else if (route.name === 'Profile') iconName = 'person-outline';
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+          tabBarActiveTintColor: '#007AFF',
+          tabBarInactiveTintColor: 'gray',
+          tabBarStyle: { height: 60, paddingBottom: 5 },
+        })}
+      >
+        <Tab.Screen name="Health" component={HealthDashboard} />
+        <Tab.Screen name="Water" component={WaterDashboard} />
+        <Tab.Screen name="Profile" component={ProfileDashboard} />
+      </Tab.Navigator>
+    </>
   );
 }
+
 
 // ----- STYLES (same as before) -----
 const styles = StyleSheet.create({

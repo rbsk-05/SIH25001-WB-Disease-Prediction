@@ -45,6 +45,7 @@
 
   "states": {
     "ArunachalPradesh": "अरुणाचल प्रदेश",
+    "Arunachal Pradesh": "अरुणाचल प्रदेश",
     "Assam": "असम",
     "Manipur": "मणिपुर",
     "Meghalaya": "मेघालय",
@@ -67,7 +68,8 @@
       "Dispur": "दिसपुर",
       "Jorhat": "जोरहाट",
       "Tezpur": "तेजपुर",
-      "Silchar": "सिलचर"
+      "Silchar": "सिलचर",
+      "Dibrugarh": "डिब्रूगढ़"
     },
     "Manipur": {
       "Imphal": "इंफाल",
@@ -113,7 +115,7 @@
     }
   },
 
-  "healthDashboard": {
+  "health": {
     "title": "स्वास्थ्य डेटा संग्रह",
     "houseId": "घर आईडी",
     "age": "आयु",
@@ -137,7 +139,10 @@
     "season": "मौसम",
     "ph": "pH",
     "turbidity": "धुंधलापन (NTU)",
-    "personsWithSymptoms": "लक्षण वाले व्यक्तियों की संख्या"
+    "personsWithSymptoms": "लक्षण वाले व्यक्तियों की संख्या",
+    "hardness": "कठोरता (mg/L)",
+"nitrate": "नाइट्रेट (mg/L)",
+"tds": "कुल घुलित ठोस (TDS) (mg/L)"
   },
 
   "placeholders": {
@@ -162,7 +167,10 @@
   "email": "अपना ईमेल दर्ज करें",
   "phone": "अपना फ़ोन नंबर दर्ज करें",
   "password": "अपना पासवर्ड दर्ज करें",
-  "confirmPassword": "अपना पासवर्ड पुनः दर्ज करें"
+  "confirmPassword": "अपना पासवर्ड पुनः दर्ज करें",
+  "hardness": "कठोरता दर्ज करें",
+"nitrate": "नाइट्रेट दर्ज करें",
+"tds": "टीडीएस दर्ज करें"
 
   },
 
@@ -232,5 +240,28 @@
   "buttons": {
     "submit": "सबमिट करें",
     "add": "जोड़ें"
+  },
+
+  "profile": {
+    "title": "प्रोफ़ाइल",
+    "email": "ईमेल",
+    "state": "राज्य",
+    "district": "ज़िला",
+    "location": "स्थान",
+    "resetPassword": "पासवर्ड रीसेट (वैकल्पिक)",
+    "currentPassword": "वर्तमान पासवर्ड",
+    "newPassword": "नया पासवर्ड",
+    "confirmPassword": "पासवर्ड की पुष्टि करें",
+    "enterCurrentPassword": "अपने वर्तमान पासवर्ड को दर्ज करें",
+    "enterNewPassword": "नया पासवर्ड दर्ज करें",
+    "confirmNewPassword": "नए पासवर्ड की पुष्टि करें",
+    "passwordMismatch": "नए पासवर्ड मेल नहीं खाते!",
+    "updateSuccess": "प्रोफ़ाइल सफलतापूर्वक अपडेट हो गई!",
+    "updateFailed": "प्रोफ़ाइल अपडेट विफल।",
+    "logout": "लॉग आउट",
+    "logoutFailed": "लॉग आउट विफल।",
+    "saveChanges": "परिवर्तनों को सहेजें",
+    "selectState": "राज्य चुनें",
+    "selectDistrict": "ज़िला चुनें"
   }
 }

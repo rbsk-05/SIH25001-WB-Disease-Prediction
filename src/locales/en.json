@@ -49,7 +49,10 @@
     "selectSeason": "Select Season",
     "ph": "Enter pH",
     "turbidity": "Enter Turbidity",
-    "personsWithSymptoms": "Enter Number of Persons"
+    "personsWithSymptoms": "Enter Number of Persons",
+      "hardness": "Enter Hardness",
+    "nitrate": "Enter Nitrate",
+    "tds": "Enter TDS"
   },
   "roles": {
     "ashaWorker": "ASHA Worker",
@@ -63,6 +66,7 @@
   },
   "states": {
     "ArunachalPradesh": "Arunachal Pradesh",
+    "Arunachal Pradesh": "Arunachal Pradesh",
     "Assam": "Assam",
     "Manipur": "Manipur",
     "Meghalaya": "Meghalaya",
@@ -84,7 +88,8 @@
       "Dispur": "Dispur",
       "Jorhat": "Jorhat",
       "Tezpur": "Tezpur",
-      "Silchar": "Silchar"
+      "Silchar": "Silchar",
+      "Dibrugarh": "Dibrugarh"
     },
     "Manipur": {
       "Imphal": "Imphal",
@@ -215,6 +220,32 @@
     "season": "Season",
     "ph": "pH",
     "turbidity": "Turbidity (NTU)",
-    "personsWithSymptoms": "Number of Persons with Symptoms"
-  }
+    "personsWithSymptoms": "Number of Persons with Symptoms",
+     "hardness": "Hardness (mg/L)",
+    "nitrate": "Nitrate (mg/L)",
+    "tds": "Total Dissolved Solids (TDS) (mg/L)"
+  },
+  "profile": {
+  "title": "Profile",
+  "email": "Email",
+  "location": "Location",
+  "state": "State",
+  "district": "District",
+  "selectState": "Select State",
+  "selectDistrict": "Select District",
+  "resetPassword": "Reset Password (Optional)",
+  "currentPassword": "Current Password",
+  "enterCurrentPassword": "Enter current password",
+  "newPassword": "New Password",
+  "enterNewPassword": "Enter new password",
+  "confirmPassword": "Confirm New Password",
+  "confirmNewPassword": "Confirm new password",
+  "saveChanges": "Save Changes",
+  "logout": "Logout",
+  "passwordMismatch": "New passwords do not match!",
+  "updateSuccess": "Profile updated successfully!",
+  "updateFailed": "Failed to update profile.",
+  "logoutFailed": "Logout failed."
+}
+
 }
