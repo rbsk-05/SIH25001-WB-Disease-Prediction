@@ -319,7 +319,7 @@ function WaterDashboard() {
 const BACKEND_URL = "http://192.168.137.23:5000/water/submit";
 
 const handleSubmit = async () => {
-  const formData = {
+  const data = {
     waterSourceName,
     waterSourceType,
     rainfall,
@@ -338,33 +338,31 @@ const handleSubmit = async () => {
   };
 
   try {
-    const response = await fetch("http://192.168.137.23:5000/water/submit", {
+    const res = await fetch("http://192.168.137.23:5000/water/submit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
+      body: JSON.stringify(data),
     });
 
-    if (!response.ok) {
-      console.error("❌ Backend returned error status:", response.status);
-      alert("Failed to submit water data");
-      return;
+    if (res.ok) {
+      const result = await res.json();
+      console.log("✅ Water form saved:", result);
+      alert("Water form submitted successfully!");
+
+      // Reset form fields
+      setWaterSourceName(""); setWaterSourceType(""); setRainfall(""); setTemperature("");
+      setDissolvedOxygen(""); setChlorine(""); setMonth(""); setFecalColiform("");
+      setSeason(""); setPh(""); setTurbidity(""); setPersonsWithSymptoms("");
+      setHardness(""); setNitrate(""); setTds("");
+    } else {
+      console.error("❌ Backend returned error status:", res.status);
+      alert("Failed to submit water form. Try again.");
     }
-
-    const result = await response.json();
-    console.log("✅ Water form submitted:", result);
-    alert("Water form submitted successfully!");
-
-    // Reset form fields
-    setWaterSourceName(""); setWaterSourceType(""); setRainfall(""); setTemperature("");
-    setDissolvedOxygen(""); setChlorine(""); setMonth(""); setFecalColiform("");
-    setSeason(""); setPh(""); setTurbidity(""); setPersonsWithSymptoms("");
-    setHardness(""); setNitrate(""); setTds("");
   } catch (err) {
     console.error("❌ Error submitting water form:", err);
-    alert("Error submitting water form");
+    alert("Error submitting water form. Check console for details.");
   }
 };
-
 
 
 
