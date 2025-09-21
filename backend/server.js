@@ -1,4 +1,5 @@
 // server.js
+const { Parser } = require('json2csv'); // npm install json2csv
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -219,3 +220,37 @@ app.get('/analytics/water', async (req, res) => {
 // -----------------------------
 const PORT = 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+app.get('/export/health', async (req, res) => {
+  try {
+    const records = await HealthModel.find();
+    const fields = Object.keys(HealthSchema.obj); // dynamically get schema fields
+    const parser = new Parser({ fields });
+    const csv = parser.parse(records);
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('health_data.csv');
+    return res.send(csv);
+  } catch (err) {
+    console.error('❌ Failed to export health data:', err);
+    res.status(500).send('Failed to export health data');
+  }
+});
+
+// Export water data as CSV
+app.get('/export/water', async (req, res) => {
+  try {
+    const records = await WaterModel.find();
+    const fields = Object.keys(WaterSchema.obj); // dynamically get schema fields
+    const parser = new Parser({ fields });
+    const csv = parser.parse(records);
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('water_data.csv');
+    return res.send(csv);
+  } catch (err) {
+    console.error('❌ Failed to export water data:', err);
+    res.status(500).send('Failed to export water data');
+  }
+});
+

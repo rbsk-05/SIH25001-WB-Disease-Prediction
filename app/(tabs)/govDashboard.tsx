@@ -13,7 +13,7 @@ import { BarChart, PieChart, LineChart } from "react-native-chart-kit";
 const screenWidth = Dimensions.get("window").width;
 
 // Update this to match your server IP
-const BASE_URL = "http://192.168.137.23:5000";
+const BASE_URL = "http://172.16.8.28:5000";
 
 export default function GovDashboard() {
   const [activeTab, setActiveTab] = useState<"Health" | "Water" | "Profile">("Health");
@@ -285,9 +285,9 @@ function HealthDashboard() {
 // -------------------------
 function WaterDashboard() {
   const [waterData, setWaterData] = useState<any[]>([]);
-  const [summary, setSummary] = useState({ 
-    total: 0, 
-    avgPh: 0, 
+  const [summary, setSummary] = useState({
+    total: 0,
+    avgPh: 0,
     avgTurbidity: 0,
     avgTemperature: 0,
     avgChlorine: 0,
@@ -297,24 +297,9 @@ function WaterDashboard() {
   const [typeDistribution, setTypeDistribution] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-  const testWaterAPI = async () => {
-    try {
-      const response = await fetch('http://192.168.196.1:5000/water'); // replace with your PC LAN IP
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      console.log("✅ Water API response:", data.slice(0, 5)); // just first 5 records
-    } catch (err) {
-      console.error("❌ Failed to fetch /water:", err);
-    }
-  };
-
-  testWaterAPI();
-}, []);
-
-  // Helper function to safely parse numbers
-  const safeParseFloat = (value: any): number => {
-    if (value === null || value === undefined || value === '') return 0;
+  // Safe number parser
+  const safeParseFloat = (value: any) => {
+    if (value === undefined || value === null || value === '') return 0;
     const parsed = parseFloat(value);
     return isNaN(parsed) ? 0 : parsed;
   };
@@ -323,61 +308,28 @@ function WaterDashboard() {
     setIsLoading(true);
     try {
       const response = await fetch(`${BASE_URL}/water`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      console.log("Water data sample:", data.slice(0, 2)); // Debug log
       setWaterData(data);
 
-      // Calculate summary statistics with better number parsing
+      // Summary
       const total = data.length;
-      
-      // Only calculate averages for records that have valid numeric values
-      const validPhRecords = data.filter(d => safeParseFloat(d.ph) > 0);
-      const validTurbidityRecords = data.filter(d => safeParseFloat(d.turbidity) > 0);
-      const validTemperatureRecords = data.filter(d => safeParseFloat(d.temperature) > 0);
-      const validChlorineRecords = data.filter(d => safeParseFloat(d.chlorine) > 0);
-      const validDoRecords = data.filter(d => safeParseFloat(d.dissolvedOxygen) > 0);
-      const validTdsRecords = data.filter(d => safeParseFloat(d.tds) > 0);
+      const avgPh = data.reduce((sum, d) => sum + safeParseFloat(d.ph), 0) / (total || 1);
+      const avgTurbidity = data.reduce((sum, d) => sum + safeParseFloat(d.turbidity), 0) / (total || 1);
+      const avgTemperature = data.reduce((sum, d) => sum + safeParseFloat(d.temperature), 0) / (total || 1);
+      const avgChlorine = data.reduce((sum, d) => sum + safeParseFloat(d.chlorine), 0) / (total || 1);
+      const avgDissolvedOxygen = data.reduce((sum, d) => sum + safeParseFloat(d.dissolvedOxygen), 0) / (total || 1);
+      const avgTds = data.reduce((sum, d) => sum + safeParseFloat(d.tds), 0) / (total || 1);
 
-      const avgPh = validPhRecords.length > 0 
-        ? validPhRecords.reduce((sum: number, d: any) => sum + safeParseFloat(d.ph), 0) / validPhRecords.length 
-        : 0;
-      const avgTurbidity = validTurbidityRecords.length > 0
-        ? validTurbidityRecords.reduce((sum: number, d: any) => sum + safeParseFloat(d.turbidity), 0) / validTurbidityRecords.length
-        : 0;
-      const avgTemperature = validTemperatureRecords.length > 0
-        ? validTemperatureRecords.reduce((sum: number, d: any) => sum + safeParseFloat(d.temperature), 0) / validTemperatureRecords.length
-        : 0;
-      const avgChlorine = validChlorineRecords.length > 0
-        ? validChlorineRecords.reduce((sum: number, d: any) => sum + safeParseFloat(d.chlorine), 0) / validChlorineRecords.length
-        : 0;
-      const avgDissolvedOxygen = validDoRecords.length > 0
-        ? validDoRecords.reduce((sum: number, d: any) => sum + safeParseFloat(d.dissolvedOxygen), 0) / validDoRecords.length
-        : 0;
-      const avgTds = validTdsRecords.length > 0
-        ? validTdsRecords.reduce((sum: number, d: any) => sum + safeParseFloat(d.tds), 0) / validTdsRecords.length
-        : 0;
+      setSummary({ total, avgPh, avgTurbidity, avgTemperature, avgChlorine, avgDissolvedOxygen, avgTds });
 
-      setSummary({ 
-        total, 
-        avgPh, 
-        avgTurbidity, 
-        avgTemperature, 
-        avgChlorine, 
-        avgDissolvedOxygen,
-        avgTds 
-      });
-
-      // Calculate water source type distribution
+      // Water source type distribution
       const typeCounts: { [key: string]: number } = {};
-      data.forEach((d: any) => {
+      data.forEach(d => {
         const type = d.waterSourceType || "Unknown";
         typeCounts[type] = (typeCounts[type] || 0) + 1;
       });
-
-      const colors = ["#1E88E5", "#43A047", "#FB8C00", "#8E24AA", "#E53935", "#00ACC1", "#D81B60"];
+      const colors = ["#67b8ffff", "#285b2aff", "rgba(118, 65, 0, 1)", "#e37fffff", "#E53935", "#004e58ff", "#FF8A65" , "#D81B60", "#AB47BC", "#00ff40ff", "#4d0081ff"];
       const pieData = Object.entries(typeCounts).map(([type, count], i) => ({
         name: type.replace('_', ' '),
         population: count,
@@ -385,15 +337,20 @@ function WaterDashboard() {
         legendFontColor: "#333",
         legendFontSize: 12,
       }));
-
       setTypeDistribution(pieData);
+
     } catch (err) {
       console.error("Failed to fetch water data:", err);
-      Alert.alert("Error", "Failed to load water data. Please check your connection.");
+      Alert.alert("Error", "Failed to load water data. Check connection.");
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Fetch on mount
+  useEffect(() => {
+    fetchWaterData();
+  }, []);
 
   if (isLoading) {
     return (
@@ -403,81 +360,10 @@ function WaterDashboard() {
     );
   }
 
-  // Monthly trend analysis
-  const monthlyData: { [key: string]: number } = {};
-  waterData.forEach((d: any) => {
-    if (d.month) {
-      monthlyData[d.month] = (monthlyData[d.month] || 0) + 1;
-    }
-  });
-
-  const monthlyChartData = {
-    labels: Object.keys(monthlyData).slice(0, 6),
-    datasets: [
-      {
-        data: Object.keys(monthlyData).length > 0 ? Object.values(monthlyData).slice(0, 6) : [0],
-        color: () => "#1E88E5",
-        strokeWidth: 2,
-      },
-    ],
-  };
-
-  // Season distribution
-  const seasonCounts: { [key: string]: number } = {};
-  waterData.forEach((d: any) => {
-    if (d.season) {
-      seasonCounts[d.season] = (seasonCounts[d.season] || 0) + 1;
-    }
-  });
-
-  const seasonChartData = {
-    labels: Object.keys(seasonCounts),
-    datasets: [{ data: Object.values(seasonCounts) }],
-  };
-
-  // pH Level Distribution (categorized)
-  const phCategories: { [key: string]: number } = {
-    "Acidic (<6.5)": 0,
-    "Normal (6.5-8.5)": 0,
-    "Basic (>8.5)": 0
-  };
-
-  waterData.forEach((d: any) => {
-    const ph = safeParseFloat(d.ph);
-    if (ph > 0) {
-      if (ph < 6.5) phCategories["Acidic (<6.5)"]++;
-      else if (ph <= 8.5) phCategories["Normal (6.5-8.5)"]++;
-      else phCategories["Basic (>8.5)"]++;
-    }
-  });
-
-  const phChartData = {
-    labels: Object.keys(phCategories),
-    datasets: [{ data: Object.values(phCategories) }],
-  };
-
-  // Water Quality Comparison Chart
-  const qualityMetrics = [
-    { name: "pH", value: summary.avgPh, standard: 7.0 },
-    { name: "Turbidity", value: summary.avgTurbidity, standard: 5.0 },
-    { name: "Chlorine", value: summary.avgChlorine, standard: 0.5 },
-    { name: "DO", value: summary.avgDissolvedOxygen, standard: 6.0 },
-    { name: "TDS", value: summary.avgTds, standard: 500 }
-  ];
-
-  const qualityComparisonData = {
-    labels: qualityMetrics.map(m => m.name),
-    datasets: [
-      {
-        data: qualityMetrics.map(m => m.value),
-        color: () => "#1E88E5",
-      },
-      {
-        data: qualityMetrics.map(m => m.standard),
-        color: () => "#4CAF50",
-      }
-    ],
-  };
+  // Recent 3 entries
+  const recentEntries = [...waterData]
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 3);
 
   return (
     <ScrollView style={styles.scroll}>
@@ -497,33 +383,11 @@ function WaterDashboard() {
         </View>
         <View style={[styles.card, styles.gradientGreen]}>
           <Text style={styles.cardTitle}>Avg pH Level</Text>
-          <Text style={styles.cardValue}>{summary.avgPh > 0 ? summary.avgPh.toFixed(1) : 'N/A'}</Text>
+          <Text style={styles.cardValue}>{summary.avgPh.toFixed(1)}</Text>
         </View>
       </View>
 
-      <View style={styles.cardsContainer}>
-        <View style={[styles.card, styles.gradientOrange]}>
-          <Text style={styles.cardTitle}>Avg Turbidity</Text>
-          <Text style={styles.cardValue}>{summary.avgTurbidity > 0 ? summary.avgTurbidity.toFixed(1) : 'N/A'}</Text>
-        </View>
-        <View style={[styles.card, styles.gradientPurple]}>
-          <Text style={styles.cardTitle}>Avg Temperature</Text>
-          <Text style={styles.cardValue}>{summary.avgTemperature > 0 ? `${summary.avgTemperature.toFixed(1)}°C` : 'N/A'}</Text>
-        </View>
-      </View>
-
-      <View style={styles.cardsContainer}>
-        <View style={[styles.card, styles.gradient1]}>
-          <Text style={styles.cardTitle}>Avg Chlorine</Text>
-          <Text style={styles.cardValue}>{summary.avgChlorine > 0 ? summary.avgChlorine.toFixed(2) : 'N/A'}</Text>
-        </View>
-        <View style={[styles.card, styles.gradient2]}>
-          <Text style={styles.cardTitle}>Avg TDS</Text>
-          <Text style={styles.cardValue}>{summary.avgTds > 0 ? summary.avgTds.toFixed(0) : 'N/A'}</Text>
-        </View>
-      </View>
-
-      {/* Water Source Distribution */}
+      {/* Pie chart for type distribution */}
       {typeDistribution.length > 0 && (
         <>
           <Text style={styles.chartTitle}>Water Source Distribution</Text>
@@ -547,154 +411,21 @@ function WaterDashboard() {
         </>
       )}
 
-      {/* pH Level Distribution */}
-      {Object.values(phCategories).some(v => v > 0) && (
-        <>
-          <Text style={styles.chartTitle}>pH Level Distribution</Text>
-          <BarChart
-            data={phChartData}
-            width={screenWidth - 32}
-            height={220}
-            fromZero
-            showValuesOnTopOfBars
-            withInnerLines={false}
-            chartConfig={{
-              backgroundGradientFrom: "#f0f2f5",
-              backgroundGradientTo: "#f0f2f5",
-              decimalPlaces: 0,
-              color: () => "#FF6B35",
-              labelColor: () => "#000",
-              style: { borderRadius: 12 },
-            }}
-            style={{ marginVertical: 16, borderRadius: 12 }}
-          />
-        </>
-      )}
-
-      {/* Season Distribution */}
-      {Object.keys(seasonCounts).length > 0 && (
-        <>
-          <Text style={styles.chartTitle}>Seasonal Data Collection</Text>
-          <BarChart
-            data={seasonChartData}
-            width={screenWidth - 32}
-            height={220}
-            fromZero
-            showValuesOnTopOfBars
-            withInnerLines={false}
-            chartConfig={{
-              backgroundGradientFrom: "#f0f2f5",
-              backgroundGradientTo: "#f0f2f5",
-              decimalPlaces: 0,
-              color: () => "#9C27B0",
-              labelColor: () => "#000",
-              style: { borderRadius: 12 },
-            }}
-            style={{ marginVertical: 16, borderRadius: 12 }}
-          />
-        </>
-      )}
-
-      {/* Water Quality vs Standards Comparison */}
-      {qualityMetrics.some(m => m.value > 0) && (
-        <>
-          <Text style={styles.chartTitle}>Water Quality vs WHO Standards</Text>
-          <View style={styles.legendContainer}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendColor, { backgroundColor: "#1E88E5" }]} />
-              <Text style={styles.legendText}>Actual Values</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendColor, { backgroundColor: "#4CAF50" }]} />
-              <Text style={styles.legendText}>WHO Standards</Text>
-            </View>
-          </View>
-          <BarChart
-            data={qualityComparisonData}
-            width={screenWidth - 32}
-            height={250}
-            fromZero
-            showValuesOnTopOfBars
-            withInnerLines={false}
-            chartConfig={{
-              backgroundGradientFrom: "#f0f2f5",
-              backgroundGradientTo: "#f0f2f5",
-              decimalPlaces: 1,
-              color: (opacity = 1) => `rgba(30, 136, 229, ${opacity})`,
-              labelColor: () => "#000",
-              style: { borderRadius: 12 },
-            }}
-            style={{ marginVertical: 16, borderRadius: 12 }}
-          />
-        </>
-      )}
-
-      {/* Monthly Submission Trend */}
-      {Object.keys(monthlyData).length > 0 && (
-        <>
-          <Text style={styles.chartTitle}>Monthly Submission Trend</Text>
-          <LineChart
-            data={monthlyChartData}
-            width={screenWidth - 32}
-            height={220}
-            chartConfig={{
-              backgroundGradientFrom: "#f0f2f5",
-              backgroundGradientTo: "#f0f2f5",
-              decimalPlaces: 0,
-              color: () => "#1E88E5",
-              labelColor: () => "#000",
-              style: { borderRadius: 12 },
-            }}
-            bezier
-            style={{ marginVertical: 16, borderRadius: 12 }}
-          />
-        </>
-      )}
-
-      {/* Data Quality Alert */}
-      {summary.total > 0 && (summary.avgPh === 0 && summary.avgTurbidity === 0) && (
-        <View style={styles.alertContainer}>
-          <Text style={styles.alertTitle}>⚠️ Data Quality Notice</Text>
-          <Text style={styles.alertText}>
-            Some water quality parameters appear to be missing or zero. 
-            Please verify data collection processes to ensure accurate measurements.
-          </Text>
-        </View>
-      )}
-
+      {/* Recent Entries */}
       <View style={styles.recentContainer}>
-  <Text style={styles.sectionTitle}>Recent Water Entries</Text>
-  {waterData
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) // newest first
-    .slice(0, 3) // take only the first 3 entries
-    .map((entry, index) => (
-      <View key={index} style={styles.recentEntry}>
-        <Text style={styles.entryText}>
-          <Text style={styles.entryLabel}>pH: </Text>{entry.ph || 'N/A'}
-        </Text>
-        <Text style={styles.entryText}>
-          <Text style={styles.entryLabel}>Turbidity: </Text>{entry.turbidity || 'N/A'}
-        </Text>
-        <Text style={styles.entryText}>
-          <Text style={styles.entryLabel}>Temperature: </Text>{entry.temperature ? `${entry.temperature}°C` : 'N/A'}
-        </Text>
-        <Text style={styles.entryText}>
-          <Text style={styles.entryLabel}>Chlorine: </Text>{entry.chlorine || 'N/A'}
-        </Text>
-        <Text style={styles.entryText}>
-          <Text style={styles.entryLabel}>Dissolved Oxygen: </Text>{entry.dissolvedOxygen || 'N/A'}
-        </Text>
-        <Text style={styles.entryText}>
-          <Text style={styles.entryLabel}>TDS: </Text>{entry.tds || 'N/A'}
-        </Text>
-        <Text style={styles.entryText}>
-          <Text style={styles.entryLabel}>Source Type: </Text>{entry.waterSourceType?.replace('_', ' ') || 'Unknown'}
-        </Text>
+        <Text style={styles.sectionTitle}>Recent Water Entries</Text>
+        {recentEntries.map((entry, index) => (
+          <View key={index} style={styles.recentEntry}>
+            <Text style={styles.entryText}><Text style={styles.entryLabel}>pH: </Text>{entry.ph || 'N/A'}</Text>
+            <Text style={styles.entryText}><Text style={styles.entryLabel}>Turbidity: </Text>{entry.turbidity || 'N/A'}</Text>
+            <Text style={styles.entryText}><Text style={styles.entryLabel}>Temperature: </Text>{entry.temperature ? `${entry.temperature}°C` : 'N/A'}</Text>
+            <Text style={styles.entryText}><Text style={styles.entryLabel}>Chlorine: </Text>{entry.chlorine || 'N/A'}</Text>
+            <Text style={styles.entryText}><Text style={styles.entryLabel}>Dissolved Oxygen: </Text>{entry.dissolvedOxygen || 'N/A'}</Text>
+            <Text style={styles.entryText}><Text style={styles.entryLabel}>TDS: </Text>{entry.tds || 'N/A'}</Text>
+            <Text style={styles.entryText}><Text style={styles.entryLabel}>Source Type: </Text>{entry.waterSourceType?.replace('_', ' ') || 'Unknown'}</Text>
+          </View>
+        ))}
       </View>
-    ))
-  }
-</View>
-
     </ScrollView>
   );
 }
@@ -707,9 +438,9 @@ function ProfileDashboard() {
     totalUsers: 0,
     totalHealthSubmissions: 0,
     totalWaterSubmissions: 0,
-    lastSyncTime: null as string | null
+    lastSyncTime: null as string | null,
   });
-  
+
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -721,7 +452,7 @@ function ProfileDashboard() {
     try {
       const [healthResponse, waterResponse] = await Promise.all([
         fetch(`${BASE_URL}/health`),
-        fetch(`${BASE_URL}/water`)
+        fetch(`${BASE_URL}/water`),
       ]);
 
       if (!healthResponse.ok || !waterResponse.ok) {
@@ -731,20 +462,20 @@ function ProfileDashboard() {
       const healthData = await healthResponse.json();
       const waterData = await waterResponse.json();
 
-      // Calculate unique users based on houseId from health data
-      const uniqueHouseIds = [...new Set(
-        healthData
-          .map((record: any) => record.houseId)
-          .filter((id: any) => id && id.trim() !== "")
-      )];
+      const uniqueHouseIds = [
+        ...new Set(
+          healthData
+            .map((record: any) => record.houseId)
+            .filter((id: any) => id && id.trim() !== "")
+        ),
+      ];
 
       setSystemStats({
         totalUsers: uniqueHouseIds.length,
         totalHealthSubmissions: healthData.length,
         totalWaterSubmissions: waterData.length,
-        lastSyncTime: new Date().toLocaleString()
+        lastSyncTime: new Date().toLocaleString(),
       });
-
     } catch (err) {
       console.error("Error fetching system stats:", err);
       Alert.alert("Error", "Failed to load system statistics");
@@ -753,12 +484,25 @@ function ProfileDashboard() {
     }
   };
 
-  const exportData = (type: string) => {
-    Alert.alert(
-      "Export Data",
-      `Export ${type} data functionality would be implemented here. This could generate CSV/Excel files or send data to external systems.`,
-      [{ text: "OK" }]
-    );
+  const exportData = async (type: "health" | "water") => {
+    try {
+      const response = await fetch(`${BASE_URL}/export/${type}`);
+      if (!response.ok) throw new Error("Failed to fetch CSV");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${type}_data_${new Date().toISOString()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Failed to export data. Check your connection.");
+    }
   };
 
   if (isLoading) {
@@ -768,6 +512,23 @@ function ProfileDashboard() {
       </View>
     );
   }
+
+  const outlinedButtonStyle = {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#000",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    marginTop: 8,
+    alignItems: "center",
+  };
+
+  const outlinedButtonTextStyle = {
+    color: "#000",
+    fontWeight: "bold",
+    textAlign: "center",
+  };
 
   return (
     <ScrollView style={styles.scroll}>
@@ -779,7 +540,7 @@ function ProfileDashboard() {
           <Text style={styles.cardTitle}>Registered Households</Text>
           <Text style={styles.cardValue}>{systemStats.totalUsers}</Text>
         </View>
-        
+
         <View style={[styles.card, styles.gradientBlue]}>
           <Text style={styles.cardTitle}>Health Submissions</Text>
           <Text style={styles.cardValue}>{systemStats.totalHealthSubmissions}</Text>
@@ -791,7 +552,7 @@ function ProfileDashboard() {
           <Text style={styles.cardTitle}>Water Quality Reports</Text>
           <Text style={styles.cardValue}>{systemStats.totalWaterSubmissions}</Text>
         </View>
-        
+
         <View style={[styles.card, styles.gradientPurple]}>
           <Text style={styles.cardTitle}>Last Updated</Text>
           <Text style={styles.cardValueSmall}>{systemStats.lastSyncTime}</Text>
@@ -801,45 +562,50 @@ function ProfileDashboard() {
       {/* Action Buttons */}
       <View style={styles.actionSection}>
         <Text style={styles.sectionTitle}>System Actions</Text>
-        
-        <TouchableOpacity style={styles.actionButton} onPress={fetchSystemStats}>
-          <Text style={styles.actionButtonText}>🔄 Refresh Statistics</Text>
+
+        <TouchableOpacity style={outlinedButtonStyle} onPress={fetchSystemStats}>
+          <Text style={outlinedButtonTextStyle}>Refresh Statistics</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.exportButton]} 
-          onPress={() => exportData('health')}
-        >
-          <Text style={styles.actionButtonText}>📊 Export Health Data</Text>
+
+        <TouchableOpacity style={outlinedButtonStyle} onPress={() => exportData("health")}>
+          <Text style={outlinedButtonTextStyle}>Export Health Data</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.exportButton]} 
-          onPress={() => exportData('water')}
+
+        <TouchableOpacity style={outlinedButtonStyle} onPress={() => exportData("water")}>
+          <Text style={outlinedButtonTextStyle}>Export Water Data</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={outlinedButtonStyle}
+          onPress={() => {
+            Alert.alert("Logged Out", "You have been logged out.");
+            // Optional: redirect to login screen here
+            // router.replace('/login');
+          }}
         >
-          <Text style={styles.actionButtonText}>💧 Export Water Data</Text>
+          <Text style={outlinedButtonTextStyle}>Logout</Text>
         </TouchableOpacity>
       </View>
 
       {/* System Information */}
       <View style={styles.infoSection}>
         <Text style={styles.sectionTitle}>System Information</Text>
-        
+
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Dashboard Version:</Text>
           <Text style={styles.infoValue}>v1.0.0</Text>
         </View>
-        
+
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Database Status:</Text>
           <Text style={[styles.infoValue, styles.statusOnline]}>● Online</Text>
         </View>
-        
+
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Data Coverage:</Text>
           <Text style={styles.infoValue}>Northeast India</Text>
         </View>
-        
+
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Monitoring Areas:</Text>
           <Text style={styles.infoValue}>Health & Water Quality</Text>
@@ -849,38 +615,49 @@ function ProfileDashboard() {
       {/* Quick Links */}
       <View style={styles.linksSection}>
         <Text style={styles.sectionTitle}>Quick Links</Text>
-        
-        <TouchableOpacity 
-          style={styles.linkButton}
-          onPress={() => Alert.alert("Feature", "Report generation feature would be implemented here")}
+
+        <TouchableOpacity
+          style={outlinedButtonStyle}
+          onPress={() =>
+            Alert.alert("Feature", "Report generation feature would be implemented here")
+          }
         >
-          <Text style={styles.linkText}>📋 Generate Reports</Text>
+          <Text style={outlinedButtonTextStyle}>Generate Reports</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.linkButton}
+
+        <TouchableOpacity
+          style={outlinedButtonStyle}
           onPress={() => Alert.alert("Feature", "System settings would be implemented here")}
         >
-          <Text style={styles.linkText}>⚙️ System Settings</Text>
+          <Text style={outlinedButtonTextStyle}>System Settings</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.linkButton}
-          onPress={() => Alert.alert("Feature", "User management interface would be implemented here")}
+
+        <TouchableOpacity
+          style={outlinedButtonStyle}
+          onPress={() =>
+            Alert.alert("Feature", "User management interface would be implemented here")
+          }
         >
-          <Text style={styles.linkText}>👥 User Management</Text>
+          <Text style={outlinedButtonTextStyle}>User Management</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.linkButton}
-          onPress={() => Alert.alert("Contact", "Support: admin@healthwater.gov.in\nPhone: +91-XXXX-XXXX")}
+
+        <TouchableOpacity
+          style={outlinedButtonStyle}
+          onPress={() =>
+            Alert.alert(
+              "Contact",
+              "Support: admin@healthwater.gov.in\nPhone: +91-XXXX-XXXX"
+            )
+          }
         >
-          <Text style={styles.linkText}>📞 Support Contact</Text>
+          <Text style={outlinedButtonTextStyle}>Support Contact</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
+
+
 
 // -------------------------
 // Styles
